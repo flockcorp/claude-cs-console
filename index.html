@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- v20260807c_supplier_count_error_visible -->
+<!-- (2026-08-07) [dev→prod 이식] 상품 목록의 '공급사 N개' 조회 실패를 화면에 드러냄. v20260807b 에서 공급사 관리 화면에는 실패 알림을 넣었지만 상품 목록 쪽은 빠져 있어, supplier_product_counts 뷰가 없거나 권한이 없으면 count 가 null → '0개'로 조용히 표시됐다(공급사가 없는 것과 구분 불가). → 실패 시 숫자 대신 '—' 를 표시하고 console.error + 알림. 알림은 useRef 표시로 화면당 한 번만 띄운다(목록 페이지를 넘길 때마다 load 가 다시 도는데 그때마다 창이 뜨면 흐름이 끊긴다). 정상 경로는 변화 없음. -->
+<!-- v20260807b_supplier_counts_server_side -->
+<!-- (2026-08-07) [dev→prod 이식] 공급사별 상품 수 집계를 서버로 이동. 공급사 수를 세려고 products 의 supplier_name 8,527행을 1000행씩 9회 받아 브라우저에서 세던 코드가 두 곳(ProductsPage.load 는 목록 페이지를 넘길 때마다, SuppliersPage.loadAll 은 화면 진입 시)에 중복돼 있었다 → group by 집계 뷰 supplier_product_counts 하나로 통일. 상품 목록의 공급사 수는 뷰 행 수만 세고(head:true, 본문 0바이트), 공급사 관리 화면은 약 955행만 받는다. 화면에 보이는 숫자는 그대로(집계 조건을 기존 JS 필터와 동일하게 맞춤, trim 은 공급사 화면에서 계속 수행). 조회 실패 시 알림 추가. ★ 선행 조건: tools/supplier_product_counts_view.sql 을 해당 DB 에 먼저 적용. -->
 <!-- v20260807a_products_search_server_side -->
 <!-- (2026-08-07) [dev→prod 이식] 상품 검색을 서버 측으로 이동. 검색어를 칠 때마다 products 전량(8,527행 약 4.7MB)을 1000행씩 9회 받아 브라우저에서 거르던 것을, 화면에 보이는 100건만 서버에서 받도록 변경. 배송지연 검색(v20260617d)과 같은 방향이지만, 상품 검색은 "띄어쓰기 무시"가 안내된 기능이라 ilike 만으로는 그 동작이 깨진다 → 공백·대소문자를 지운 정규화 컬럼을 얹은 products_search 뷰를 만들어 그 위에서 like 로 조회한다. 띄어쓰기 무시·;로 AND·필드 선택·정렬·페이지네이션 동작은 모두 그대로. 조회 실패 시 조용히 0건이 되지 않도록 알림 추가. ★ 선행 조건: tools/products_search_view.sql 을 해당 DB 에 먼저 적용해야 한다(뷰가 없으면 검색이 실패 알림을 띄운다). ProductsPage 의 load() 검색 분기만 변경. -->
 <!-- v20260806a_console_role_from_server -->
@@ -1757,6 +1761,7 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false}){
   const toggleCs=id=>setExpandedCs(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});
   const fileRef=useRef(null);
   const [totalCount,setTotalCount]=useState({suppliers:0,products:0,filtered:0,withCs:0});
+  const supCountWarned=useRef(false); // 공급사 수 조회 실패 알림을 페이지 이동마다 반복하지 않기 위한 표시
 
   // ── 공급사 소통 채널 관리
   const canManageSupplier = isMaster || isManager; // master·manager만 채널 변경 가능
@@ -2107,24 +2112,24 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false}){
       setProducts(data||[]);
       const[r2,r3,rCs]=await Promise.all([
         sb.from('products').select('*',{count:'exact',head:true}),
-        (async()=>{
-          let sups=[],sp=0;
-          while(true){
-            const{data:sc}=await sb.from('products').select('supplier_name').range(sp*1000,(sp+1)*1000-1);
-            if(!sc||sc.length===0) break;
-            sups=[...sups,...sc];
-            if(sc.length<1000) break;
-            sp++;
-          }
-          return{data:sups};
-        })(),
+        // 공급사 수: 예전엔 supplier_name 8,527행을 1000행씩 9회 받아 브라우저에서 Set 으로 셌다.
+        // 이제 집계 뷰의 행 수만 센다(head:true 라 본문은 아예 받지 않는다).
+        sb.from('supplier_product_counts').select('*',{count:'exact',head:true}),
         // master만: CS 정보가 있는 상품 개수 카운트 (NULL 아니고 빈 문자열도 아닌 것)
         isMaster
           ? sb.from('products').select('*',{count:'exact',head:true}).not('cs_info','is',null).neq('cs_info','')
           : Promise.resolve({count:0}),
       ]);
-      const uniqueSup=new Set((r3.data||[]).map(r=>r.supplier_name).filter(Boolean)).size;
-      setTotalCount({suppliers:uniqueSup,products:r2.count||0,filtered:count||0,withCs:rCs.count||0});
+      // 뷰가 없거나 권한이 없으면 여기로 온다. 0 으로 보이면 '공급사가 없다'와 구분이 안 되므로
+      // 숫자 대신 '—' 를 표시하고, 알림은 페이지를 넘길 때마다 반복되지 않도록 한 번만 띄운다.
+      if(r3.error){
+        console.error('공급사 수 조회 실패:',r3.error);
+        if(!supCountWarned.current){
+          supCountWarned.current=true;
+          alert('공급사 수를 불러오지 못했습니다.\n'+(r3.error.message||'')+'\n\n관리자에게 알려주세요(supplier_product_counts 뷰 확인 필요).');
+        }
+      }
+      setTotalCount({suppliers:r3.error?null:(r3.count||0),products:r2.count||0,filtered:count||0,withCs:rCs.count||0});
     }
     setLoading(false);
   };
@@ -2454,7 +2459,7 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false}){
               onMouseEnter={canManageSupplier?(e)=>{e.currentTarget.style.borderColor='#2A478D';e.currentTarget.style.background='#1a2e55';}:undefined}
               onMouseLeave={canManageSupplier?(e)=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--card)';}:undefined}>
               <div style={{fontSize:10,color:'var(--sub)',marginBottom:2}}>총 공급사{canManageSupplier&&<span style={{color:'#F6AD09'}}> ⚙</span>}</div>
-              <div style={{fontSize:18,fontWeight:700,color:'var(--accent)'}}>{totalCount.suppliers}<span style={{fontSize:11,fontWeight:400,color:'var(--sub)',marginLeft:2}}>개</span></div>
+              <div style={{fontSize:18,fontWeight:700,color:'var(--accent)'}}>{totalCount.suppliers===null?'—':totalCount.suppliers}<span style={{fontSize:11,fontWeight:400,color:'var(--sub)',marginLeft:2}}>개</span></div>
               <div style={{fontSize:9,color:'var(--sub)',marginTop:2,lineHeight:1.3}}>상품 정보가 있는 총 공급사 수만 가져옵니다.</div>
             </div>
             <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 16px',textAlign:'center'}}>
@@ -3557,17 +3562,25 @@ function SuppliersPage({isCrew=false,isMaster=false,isManager=false}){
       cafe24Code:s.cafe24_supplier_code||'',
       updated_at:s.updated_at,
     }));
-    // 2. products 테이블에서 supplier_name 카운트 (페이지네이션)
+    // 2. 공급사별 상품 수 — 집계 뷰에서 받는다(약 955행).
+    //    예전엔 products 의 supplier_name 8,527행을 1000행씩 9회 받아 브라우저에서 셌다.
+    //    앞뒤 공백 정리(trim)는 예전과 똑같이 여기서 한다 — 공백만 다른 이름은 한 줄로 합쳐진다.
     const counts={};
     let from=0; const PAGE=1000;
     while(true){
-      const{data:prodRows}=await sb.from('products').select('supplier_name').range(from,from+PAGE-1);
-      if(!prodRows||prodRows.length===0) break;
-      prodRows.forEach(p=>{
-        const n=(p.supplier_name||'').trim();
-        if(n) counts[n]=(counts[n]||0)+1;
+      const{data:cntRows,error}=await sb.from('supplier_product_counts')
+        .select('supplier_name,product_count').range(from,from+PAGE-1);
+      if(error){
+        console.error('공급사별 상품 수 조회 실패:',error);
+        alert('공급사별 상품 수를 불러오지 못했습니다.\n'+(error.message||'')+'\n\n관리자에게 알려주세요(supplier_product_counts 뷰 확인 필요).');
+        break;
+      }
+      if(!cntRows||cntRows.length===0) break;
+      cntRows.forEach(r=>{
+        const n=(r.supplier_name||'').trim();
+        if(n) counts[n]=(counts[n]||0)+Number(r.product_count||0);
       });
-      if(prodRows.length<PAGE) break;
+      if(cntRows.length<PAGE) break;
       from+=PAGE;
     }
     // products에 있지만 suppliers에 없는 공급사도 목록에 포함
