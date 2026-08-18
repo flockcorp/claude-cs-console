@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<!-- v20260814g_review_trail_fix -->
+<!-- (2026-08-14) [dev→prod 이식] v20260814f 긴급 수정: 환불 수정 창이 열리지 않았다. 진행 중인 경과를 계산하는 pendingSteps 를 pendingReview 보다 **위에** 둬서, const 초기화 전 참조(ReferenceError)로 창이 통째로 죽었다. 선언 순서만 바로잡았고 동작은 v20260814f 그대로다. ★ npm run check(문법 검사)는 이걸 못 잡는다 — 파싱은 통과하고 실행할 때만 터진다. 빌드가 없는 단일 파일이라 이런 것은 배포 후에야 드러난다(2026-06-17 흰 화면 사고와 같은 계열). -->
+<!-- v20260814f_review_trail -->
+<!-- (2026-08-14) [dev→prod 이식] 확인 요청의 경과를 빠짐없이 남기고 보여준다(사용자 제보 — "보류했다가 해제하면서 남긴 메모가 표기가 안 된다"). 두 군데가 새고 있었다. ①메모칸이 [확인 완료]에만 물려 있어 [보류 해제]를 누르면 적어 둔 글이 조용히 사라졌다 — 이제 두 버튼이 같은 칸을 쓰고 어느 쪽을 눌러도 이력에 남는다(라벨도 '이 처리에 메모를 남기시겠어요?'로 바꿨다). ②보류를 풀면 refunds 의 hold_* 를 지우는데, 진행 중인 요청은 아래 목록에서 빠져 있어 보류했던 사실 자체가 화면에서 사라졌다 — 이제 진행 중인 건의 경과(요청 → 보류 → 보류 해제 → …)를 이력에서 읽어 빨간 박스 안에 순서대로 쌓아 보여준다. ★ 한 처리를 '한 줄 + 메모'로 그리는 stepLine 을 하나 두고 박스와 지난 목록이 같은 모양을 쓴다 — 두 곳이 따로 그리면 한쪽만 고쳐져 어긋난다. 이력을 못 읽은 경우엔 행의 hold_* 로라도 지금 걸린 보류는 보여준다. 저장·판정 로직과 DB 스키마 변경 없음. -->
+<!-- v20260814e_refund_hold -->
+<!-- (2026-08-14) [dev→prod 이식] 환불 '보류' 신설(사용자 요청). 추가 확인을 요청했는데 '확인 완료'로 끝나지 않는 건들이 있다 — 고객 연락이 안 되거나 공급사 회신을 기다려야 하는 경우다. 지금까지는 확인 필요인 채로 계속 떠 있어서 '지금 할 수 있는 일'과 '기다려야 하는 일'이 한 숫자에 섞였다. ★ 환불 상태(환불 대기→후처리 대기→완료)는 건드리지 않았다. 보류는 확인 요청의 결말 중 하나다: 요청 → 확인 완료 / 보류. needs_review 는 '무언가 걸려 있다'는 우산 의미로 두고 review_state('requested'|'held')로 갈라 쓴다 — 기존 칩·배너·필터가 그대로 돌아간다. 화면: 확인 필요 박스에 [⏸ 보류로 전환](사유 필수, 재개 예정일 선택) 추가, 보류 중이면 박스가 주황으로 바뀌고 [✓ 확인 완료]와 [🔎 보류 해제 — 다시 확인 필요] 두 길을 준다. 목록 칩은 «⏸ 보류 (~09-01)», KPI 는 '추가 확인 필요'와 '보류'를 나눠 세고 재개 예정일이 지난 건수를 따로 띄운다(보류는 잊히는 게 가장 큰 위험이다). ★ 보류 중에는 [환불 완료]·[후처리 완료] 버튼을 막고 이유를 옆에 적는다 — 사용자 결정. 보류의 목적이 '지금 진행하지 말자'이므로 모르고 송금하는 사고를 물리적으로 막는다. ★ hold_* 컬럼은 '지금 걸려 있는 보류'만 담는다. 풀면 지운다 — 지나간 기록은 refund_history 에 남으므로 남겨 두면 낡은 값만 굴러다닌다. 지난 확인 요청 목록에는 요청 → 보류 → 해제가 한 덩어리로 쌓인다. ★ 날짜 비교에 todayLocal() 을 새로 뒀다 — 기존 today() 는 UTC 라 KST 새벽에 하루 어긋난다. ★ 선행 조건: tools/refund_hold.sql 을 해당 DB 에 먼저 적용(컬럼 5개 + 부분 인덱스 + 기존 확인 필요 건을 'requested' 로 이관). -->
+<!-- v20260814d_pending_review_in_box -->
+<!-- (2026-08-14) [dev→prod 이식] 진행 중인 확인 요청을 '추가 확인 필요' 박스 안에서 끝맺게 하고, 지난 요청은 접어 둔다(사용자 요청). 이력이 여러 건 쌓이면 지금 무엇이 막혀 있는지가 목록 속에 묻혀 한눈에 안 들어왔다. → ①진행 중인 요청은 아래 목록에서 빼고, 빨간 박스 안에 요청 시각·요청자·사유를 함께 띄운다. 무엇이 막혀 있고 무엇을 확인해야 하는지를 박스 하나에서 다 읽고, 그 자리에서 확인 메모를 적어 해제한다. ②해제하는 순간 요청 사유와 확인 메모가 짝을 이뤄 아래 '지난 확인 요청'으로 내려간다. ③그 목록은 ▶ 토글로 접었다 펼친다(기본은 접힘) — 건수는 접힌 채로도 보이고, 여러 건 쌓여도 폼이 길어져 처리 이력이 멀어지지 않는다. 표시 자리만 바꿨고 저장·판정 로직과 DB 스키마는 그대로다. -->
+<!-- v20260814c_resolve_memo -->
+<!-- (2026-08-14) [dev→prod 이식] 추가 확인을 해제할 때도 메모를 남길 수 있게 한다(사용자 요청). 지금까지 사유는 요청할 때만 남길 수 있어, 무엇을 어떻게 확인하고 풀었는지가 어디에도 안 남았다 — 요청자는 '풀렸다'는 사실만 볼 수 있었다. ★ 요청 사유와 달리 **선택 입력**이다. 확인만 하고 푸는 경우가 대부분이라 강제하면 흐름만 끊긴다. 그래서 요청처럼 [버튼 → 폼] 두 단계로 나누지 않고 빨간 박스 안에 칸을 늘 열어 두고, 비워 둔 채 눌러도 그대로 해제된다(빈 값이면 이력에 note 를 남기지 않는다). 해제 메모는 확인 요청 메모 목록에서 해제 줄 아래에 초록 선을 달고 붙는다 — 요청 사유(회색 선)와 한눈에 구분된다. ★ 요청 사유는 refunds.review_note 컬럼과 이력 양쪽에 있지만 해제 메모는 **이력에만** 있다. 목록 칩·배너가 쓰는 값이 아니라 컬럼을 늘릴 이유가 없었다 — 대신 이력 조회가 실패하면 해제 메모는 보이지 않는다. DB 스키마 변경 없음. -->
+<!-- v20260814b_review_memo_lines -->
+<!-- (2026-08-14) [dev→prod 이식] 확인 요청 메모를 읽기 좋게 나눈다(사용자 요청). 요청과 해제를 한 줄에 붙여 놨더니 «요청: 시각 · 계정 · 해제: 시각 · 계정» 이 한 줄로 길게 이어져 읽기 어려웠다. → 요청 / 사유 / 해제 순으로 한 줄씩 놓고, 사유는 왼쪽에 선을 그어 요청에 딸린 내용임을 보이게 했다. 진행 중이면 해제 줄 대신 요청 줄에 '진행 중'을 붙인다. 함께 확인한 것: 메모 끝에 붙어 보이던 '+' 는 화면이 만든 군더더기가 아니라 **그 메모의 실제 내용**이다(운영 refund_history.note 값이 문자 그대로 '+' — 2026-08-11 테스트 때 사유 칸에 그렇게 입력됐다). 이력 표는 수정·삭제 정책이 없어 그 값은 고칠 수 없다. 표시 로직·저장 로직·DB 스키마 변경 없음. -->
+<!-- v20260814a_refund_history_untangled -->
+<!-- (2026-08-14) [dev→prod 이식] 환불 수정 창의 이력 표시를 정리한다(사용자 제보 — "이력이 중복 표기된다", "수정하고 뭐 할 때마다 이상하게 꼬이고 기존 이력이 날아간다"). 세 가지 문제가 겹쳐 있었다. ①확인 요청 사유가 빨간 박스·'지난 확인 요청'·이력 박스 세 군데에 찍혔다. ②유추 항목을 걸러내는 기준이 'action 이름이 같은 로그가 있는가'라서, 같은 이름의 로그가 하나라도 생기면 그 전에 있던 유추 항목이 통째로 사라졌다. ③updated_at 은 확인 요청·완료 처리 같은 다른 처리에도 트리거로 갱신되는데 유추 '내용 수정'이 그 값을 쓰고 있어, 무엇을 하든 유령 항목이 최근 시각으로 튀어 올랐다(처리자는 옛 사람 그대로). → 메모가 보이는 곳을 하나로 모았다: 확인 요청 사유는 [🔎 추가 확인 요청] 버튼 **아래에 요청할 때마다 쌓이고**(오래된 것이 위, 진행 중인 건은 빨간 테두리 + '진행 중'), 그 아래 전체 이력 박스에는 **항목명·시각·처리 계정만** 찍는다. 유추 항목은 이름이 아니라 **시각으로 짝짓는다** — 같은 처리의 로그가 5분 안에 있으면 그 로그가 곧 그 사건이므로 버리고, 로그가 쌓이기 시작한 뒤의 컬럼 값도 로그가 진실이므로 버린다. 그 이전 것만 유추로 채우므로 새 처리를 해도 옛 항목이 사라지지 않는다. ★ 원복은 완료 시각·처리자 컬럼을 NULL 로 지우는데, 이력 기록(2026-08-07) 이전에 완료된 건은 그 컬럼이 유일한 근거였다 — 지우기 전에 원래 시각 그대로 이력으로 옮겨 둔다. 확인 요청 메모는 완료 건(읽기 전용)에서도 보인다. 저장·처리 로직과 DB 스키마는 그대로다. -->
 <!-- v20260812a_dev_send_blocked_in_ui -->
 <!-- (2026-08-12) [dev→prod 이식] 테스트(dev) 콘솔에서 발송 버튼을 화면에서 막는다. dev 는 운영 실데이터 복원본이고 실제 카페24 몰·Solapi·SendGrid 를 쓰기 때문에 [발송하기] 를 누르면 진짜 고객에게 나간다. 2026-08-10 에 엣지 함수 쪽을 SEND_DISABLED 로 막아 뒀지만 막는 주체가 함수라 화면에는 그냥 '발송 실패'로 보였다 — 눌러도 되는 버튼처럼 보이는 게 문제였다. → 실제 고객에게 나가는 발송 버튼 3곳(지연 알림톡 [발송하기], 발송내역 [🔄 선택 재발송], 자동발송 [📨 수동 발송])을 회색으로 비활성 처리하고 이유를 옆에 적었다(회색 버튼에 이유를 붙인 v20260810a 와 같은 맥락). 각 핸들러에도 같은 판정을 방어로 넣어, 혹시 다른 경로로 호출돼도 발송 요청 자체가 나가지 않는다. ★ 자동발송 템플릿의 [테스트 발송]은 일부러 살려 뒀다 — 받는 사람을 운영자가 직접 입력하는 자리라 고객에게 나가지 않고, 메일이 실제로 어떻게 나가는지 봐야 템플릿·코드를 고칠 수 있기 때문이다. 판정은 '지금 접속 중인 Supabase 프로젝트'로 한다(SEND_BLOCKED) — dev·운영 소스는 접속 정보 2줄만 다르므로 같은 파일이 양쪽에서 알아서 동작하고 승격 때 손댈 곳이 없다. 운영 프로젝트가 아니면 전부 차단하는 fail-safe 방식이라, 승격이 잘못돼 운영에 dev 주소가 올라가는 사고에도 발송이 먼저 막힌다. 조회·미리보기·저장은 그대로다. DB·엣지 함수 변경 없음. -->
 <!-- v20260810c_product_save_n_columns_fix -->
@@ -484,6 +498,10 @@ const calcRR  = ops => { const req=Number(ops.request_calls)||0, ans=Number(ops.
 
 const dateOffset = days => { const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString().slice(0,10); };
 const today = () => new Date().toISOString().slice(0,10);
+// ★ 위 today() 는 UTC 기준이라 새벽(KST 00~09시)엔 어제 날짜가 나온다. 날짜를 '오늘인가'로
+//   비교할 때는 이걸 쓸 것 — 그 시간대에 하루 어긋난 판정이 나온다.
+const todayLocal = () => { const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
 
 // ── LOGIN ──────────────────────────────────────
 function LoginPage() {
@@ -4553,6 +4571,8 @@ const REFUND_ACTION_LABEL = {
   revert_to_pending2: '↺ 환불 대기로 원복',
   revert_to_pending3: '↺ 후처리 대기로 원복',
   review_request:     '🔎 추가 확인 요청',
+  review_hold:        '⏸ 보류로 전환',
+  review_resume:      '🔎 보류 해제 — 다시 확인 필요',
   review_resolve:     '✓ 추가 확인 해제',
   delete:             '삭제',
 };
@@ -4560,6 +4580,8 @@ const REFUND_ACTION_COLOR = {
   refund_complete:    '#F6AD09',
   cafe24_done:        '#78AAFF',
   review_request:     '#f87171',
+  review_hold:        '#FFA94D',   // 보류 — 급한 빨강도, 끝난 초록도 아닌 자리
+  review_resume:      '#f87171',
   review_resolve:     '#7ED957',
   delete:             '#FF6B6B',
   revert_to_pending2: 'var(--sub)',
@@ -4571,6 +4593,8 @@ const ACTION_TO_LOG = {
   mark_refund_complete: 'refund_complete',
   mark_cafe24_done:     'cafe24_done',
   request_review:       'review_request',
+  hold_review:          'review_hold',
+  resume_review:        'review_resume',
   resolve_review:       'review_resolve',
   revert_to_pending2:   'revert_to_pending2',
   revert_to_pending3:   'revert_to_pending3',
@@ -4578,10 +4602,72 @@ const ACTION_TO_LOG = {
 };
 // 이력 기록은 본 처리를 방해하면 안 된다 — 실패해도 콘솔에만 남기고 흐름을 막지 않는다.
 // (이력이 빠지는 것보다, 이미 끝난 처리가 실패한 것처럼 보이는 쪽이 더 나쁘다)
-async function logRefund(refundId, action, actor, note){
+// 같은 사건으로 볼 시간 차이. 처리 직후에 이력을 쓰므로 실제 차이는 1초 안쪽이다.
+const REFUND_LOG_NEAR_MS = 5*60*1000;
+const refundTs = v => v ? new Date(v).getTime() : NaN;
+
+// 확인 요청 메모 — 요청할 때마다 쌓인다. 요청과 그 뒤에 오는 해제를 짝지어 준다.
+// 이력 기능(2026-08-07) 이전 건이거나 이력을 못 읽었으면 행의 컬럼에서 한 건만 유추한다.
+function buildReviewLog(row, history){
+  const out = [];
+  for(const h of (history||[])){
+    if(h.action==='review_request'){
+      out.push({id:h.id, note:h.note, actor:h.actor, at:h.created_at,
+                steps:[], resolvedAt:null, resolvedBy:null, resolvedNote:null});
+    }else if(h.action==='review_hold' || h.action==='review_resume'){
+      // 한 요청이 보류됐다 풀렸다 여러 번 할 수 있다. 그 사이 처리를 순서대로 쌓아 둔다 —
+      // 보류를 풀면 refunds 의 hold_* 는 지워지므로, 여기 없으면 그 기록은 화면에서 사라진다.
+      const last = out[out.length-1];
+      if(last && !last.resolvedAt){
+        last.steps.push({kind:h.action==='review_hold'?'hold':'resume',
+                         at:h.created_at, by:h.actor, note:h.note});
+      }
+    }else if(h.action==='review_resolve'){
+      const last = out[out.length-1];
+      // 해제할 때 남긴 메모는 선택 입력이라 없을 수 있다. 이력에만 있고 refunds 컬럼에는 없다.
+      if(last && !last.resolvedAt){ last.resolvedAt=h.created_at; last.resolvedBy=h.actor; last.resolvedNote=h.note; }
+    }
+  }
+  if(!out.length && row.review_requested_at){
+    out.push({id:'d-review', note:row.review_note, actor:row.review_requested_by,
+              at:row.review_requested_at, steps:[], resolvedNote:null,
+              resolvedAt:row.review_resolved_at, resolvedBy:row.review_resolved_by});
+  }
+  return out;
+}
+
+// 처리 이력 한 줄기 — 시간순. 로그(append-only)에 없는 옛 처리만 행의 상태 컬럼에서 유추해 채운다.
+// ★ 유추분을 'action 이름이 같은 로그가 있는가'로 걸러내던 것이 문제였다(v20260814a):
+//   같은 이름의 로그가 하나라도 생기면 그 전에 있던 유추 항목이 통째로 사라졌고,
+//   updated_at 은 다른 처리에도 트리거로 갱신돼 유령 '내용 수정'이 최근 시각으로 튀어 올랐다.
+//   → 시각으로 짝짓는다. 같은 처리의 로그가 5분 안에 있으면 그 로그가 곧 그 사건이고,
+//     로그가 쌓이기 시작한 뒤의 컬럼 값도 로그가 진실이다. 그 이전 것만 유추한다.
+function buildRefundTimeline(row, history){
+  const logs = history||[];
+  const logEraFrom = logs.length ? refundTs(logs[0].created_at) : Infinity;  // 조회가 오래된 것부터 준다
+  const derived = [];
+  const add=(action,at,by)=>{
+    const t = refundTs(at);
+    if(!at || isNaN(t)) return;
+    if(logs.some(h=>h.action===action && Math.abs(refundTs(h.created_at)-t)<REFUND_LOG_NEAR_MS)) return;
+    // 경계에도 같은 허용 오차를 준다. 트리거가 updated_at 을 이력보다 한 박자 먼저 갱신해서
+    // '첫 로그보다 1초 이르다'는 이유로 유령 '내용 수정'이 빠져나갔다(테스트로 잡았다).
+    if(t >= logEraFrom - REFUND_LOG_NEAR_MS) return;
+    derived.push({id:'d-'+action, action, created_at:at, actor:by});
+  };
+  add('create', row.created_at, row.created_by);
+  if(row.updated_at && row.updated_at!==row.created_at) add('update', row.updated_at, row.updated_by);
+  if(row.refund_completed) add('refund_complete', row.refund_completed_at, row.refund_completed_by);
+  if(row.cafe24_done)      add('cafe24_done',     row.cafe24_done_at,      row.cafe24_done_by);
+  return [...derived, ...logs].sort((a,b)=> refundTs(a.created_at) - refundTs(b.created_at));
+}
+
+// createdAt 을 주면 그 시각으로 남긴다 — 지나간 처리를 뒤늦게 이력으로 옮길 때 쓴다(원복 직전 보존).
+async function logRefund(refundId, action, actor, note, createdAt){
   if(!refundId) return;
   const { error } = await sb.from('refund_history').insert({
     refund_id: refundId, action, actor: actor || 'unknown', note: note || null,
+    ...(createdAt ? { created_at: createdAt } : {}),
   });
   if(error) console.error('[환불 이력 기록] 실패:', action, error);
 }
@@ -4921,6 +5007,15 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
   // 추가 확인 필요: 담당자가 처리하다 막혔을 때 사유를 남기고, 요청자가 보고 풀 수 있게 한다.
   const [reviewNote,setReviewNote]=useState('');
   const [reviewOpen,setReviewOpen]=useState(false);
+  // 해제할 때 남기는 메모는 **선택**이다 — 확인만 하고 푸는 경우가 대부분이라
+  // 입력을 강제하면 흐름만 끊긴다. 요청과 달리 두 단계로 나누지 않고 칸을 늘 열어 둔다.
+  const [resolveNote,setResolveNote]=useState('');
+  const [reviewListOpen,setReviewListOpen]=useState(false);  // 지난 확인 요청 접기/펼치기
+  // 보류 — 확인 요청의 또 다른 결말. 사유는 필수, 재개 예정일은 선택.
+  const [holdOpen,setHoldOpen]=useState(false);
+  const [holdReason,setHoldReason]=useState('');
+  const [holdUntil,setHoldUntil]=useState('');
+  const isHeld = row.review_state==='held';
   // 처리 이력 (refund_history). 모달을 열 때 한 번 읽는다.
   const [history,setHistory]=useState([]);
   const [historyLoading,setHistoryLoading]=useState(true);
@@ -5046,6 +5141,10 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
       setErr('어떤 확인이 필요한지 적어주세요.');
       return;
     }
+    if(action==='hold_review' && !holdReason.trim()){
+      setErr('왜 보류하는지 적어주세요.');
+      return;
+    }
     if(action==='delete'){
       if(!confirm('이 환불 요청을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) return;
     }
@@ -5058,20 +5157,43 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
     if(action==='mark_cafe24_done'){
       if(!confirm('후처리를 완료 처리하시겠습니까?\n이 건의 상태가 «완료»로 바뀝니다. 카페24·젠데스크 정리가 끝났는지 확인해 주세요.')) return;
     }
+    // ★ 원복은 완료 시각·처리자 컬럼을 NULL 로 지운다. 이력 기록(2026-08-07) 이전에 완료된 건은
+    //   그 컬럼이 유일한 근거라, 지우고 나면 "완료했었다"가 화면에서 영영 사라진다.
+    //   → 지우기 전에 이력으로 옮겨 둔다(원래 시각 그대로).
+    //   이력을 못 읽은 상태(history===null)에서는 이미 기록이 있는지 알 수 없어 건너뛴다 —
+    //   같은 처리가 두 줄로 찍히는 편이 더 나쁘다.
+    if((action==='revert_to_pending2' || action==='revert_to_pending3') && history!==null){
+      const [logAction, at, by] = action==='revert_to_pending2'
+        ? ['refund_complete', row.refund_completed_at, row.refund_completed_by]
+        : ['cafe24_done',     row.cafe24_done_at,      row.cafe24_done_by];
+      const already = history.some(h=>h.action===logAction
+        && Math.abs(refundTs(h.created_at)-refundTs(at)) < REFUND_LOG_NEAR_MS);
+      if(at && !already) await logRefund(row.id, logAction, by, null, at);
+    }
     setSaving(true);
     setErr('');
     let result;
     if(action==='delete'){
       result = await sb.from('refunds').delete().eq('id', row.id);
-    } else if(action==='request_review' || action==='resolve_review'){
-      // ★ 폼 값은 건드리지 않는다. 확인 요청/해제만 따로 저장한다 —
+    } else if(action==='request_review' || action==='resolve_review'
+              || action==='hold_review' || action==='resume_review'){
+      // ★ 폼 값은 건드리지 않는다. 확인 요청/보류/해제만 따로 저장한다 —
       //   같이 저장하면 아직 다 못 고친 입력이 딸려 들어간다.
+      // hold_* 는 '지금 걸려 있는 보류'만 담는다. 풀면 지운다 — 지나간 기록은 이력에 남는다.
       const now = new Date().toISOString();
       const who = currentUserEmail || 'unknown';
-      const payload = action==='request_review'
-        ? { needs_review:true, review_note:reviewNote.trim(), review_requested_at:now, review_requested_by:who,
-            review_resolved_at:null, review_resolved_by:null }   // 다시 요청하면 지난 해제 기록은 지운다
-        : { needs_review:false, review_resolved_at:now, review_resolved_by:who };
+      const clearHold = { hold_reason:null, hold_until:null, hold_at:null, hold_by:null };
+      const payload =
+        action==='request_review'
+          ? { needs_review:true, review_state:'requested', review_note:reviewNote.trim(),
+              review_requested_at:now, review_requested_by:who,
+              review_resolved_at:null, review_resolved_by:null, ...clearHold }  // 다시 요청하면 지난 해제 기록은 지운다
+        : action==='hold_review'
+          ? { needs_review:true, review_state:'held', hold_reason:holdReason.trim(),
+              hold_until:holdUntil || null, hold_at:now, hold_by:who }
+        : action==='resume_review'
+          ? { needs_review:true, review_state:'requested', ...clearHold }
+          : { needs_review:false, review_state:null, review_resolved_at:now, review_resolved_by:who, ...clearHold };
         // 해제해도 review_note 는 남긴다 — 왜 한 번 멈췄었는지 나중에 볼 수 있어야 한다.
       result = await sb.from('refunds').update(payload).eq('id', row.id);
     } else {
@@ -5124,7 +5246,11 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
     if(result.error){ setSaving(false); setErr('처리 실패: '+result.error.message); return; }
     // 처리가 실제로 반영된 뒤에만 이력을 남긴다. 화면의 action 이름과 이력의 action 이름을 맞춘다.
     await logRefund(row.id, ACTION_TO_LOG[action] || action, currentUserEmail,
-      action==='request_review' ? reviewNote.trim() : null);
+      action==='request_review' ? reviewNote.trim()
+      : action==='hold_review'  ? holdReason.trim() + (holdUntil ? `  (재개 예정 ${holdUntil})` : '')
+      // 확인 완료·보류 해제는 같은 메모칸을 쓴다. 한쪽에만 물려 두면 적어 놓은 글이 조용히 사라진다.
+      : (action==='resolve_review' || action==='resume_review') ? (resolveNote.trim() || null)
+      : null);
     setSaving(false);
     onSaved();
   };
@@ -5149,6 +5275,43 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
 
   // 상태 배지 색상
   const stColor = refundStatusOf(row);
+
+  // 확인 요청의 처리 한 건을 '한 줄 + 메모'로 그린다. 진행 중인 건(위 박스)과 지난 목록이
+  // 같은 모양을 써야 눈이 흔들리지 않는다. 메모는 없을 수 있다(보류 해제·확인 완료는 선택 입력).
+  const REVIEW_STEP = {
+    request: {label:'요청',        color:'var(--sub)', border:'rgba(248,113,113,.45)'},
+    hold:    {label:'⏸ 보류',      color:'#FFA94D',    border:'rgba(255,169,77,.6)'},
+    resume:  {label:'🔎 보류 해제', color:'#f87171',    border:'rgba(248,113,113,.45)'},
+    resolve: {label:'✓ 확인 완료',  color:'#7ED957',    border:'rgba(126,217,87,.5)'},
+  };
+  const stepLine = (kind, at, by, note, key)=>{
+    const s = REVIEW_STEP[kind];
+    return (
+      <div key={key} style={{marginBottom:6}}>
+        <div style={{fontSize:11,color:s.color}}>{s.label}: {fmtDateTime(at)} · {by||'-'}</div>
+        {note && (
+          <div style={{fontSize:13,color:'var(--text)',whiteSpace:'pre-wrap',
+            margin:'6px 0 0',paddingLeft:10,borderLeft:'2px solid '+s.border}}>{note}</div>
+        )}
+      </div>
+    );
+  };
+
+  // 확인 요청 메모 — 요청할 때마다 아래로 쌓아 보여준다(요청 버튼 바로 밑).
+  // ★ 메모 본문이 보이는 곳은 여기 하나뿐이다 — 아래 전체 이력 박스에는 찍지 않는다.
+  //   예전엔 빨간 박스·'지난 확인 요청'·이력 박스 세 군데에 같은 내용이 찍혔다(사용자 지적).
+  const reviewLog = buildReviewLog(row, history);
+  // 진행 중인 요청은 위 '추가 확인 필요' 박스에서 사유까지 다 보여주고, 아래 목록에는 넣지 않는다.
+  // 해제하는 순간 요청 사유와 확인 메모가 짝을 이뤄 아래로 내려간다 — 이력이 여러 개 쌓이면
+  // 지금 무엇이 막혀 있는지가 목록에 묻혀 안 보였다(사용자 지적).
+  const pendingReview  = row.needs_review ? reviewLog.find(r=>!r.resolvedAt) : null;
+  const resolvedReview = reviewLog.filter(r=>r!==pendingReview);
+  // 진행 중인 건의 경과(보류·보류 해제). 이력을 못 읽었으면 행의 hold_* 로라도 지금 걸린 보류는 보여준다.
+  // ★ 반드시 pendingReview 뒤에 와야 한다 — 앞에 두면 const 초기화 전 참조로 창이 통째로 죽는다.
+  //   문법 검사(npm run check)는 이걸 못 잡는다. 실제로 한 번 밟았다.
+  const pendingSteps = (pendingReview && pendingReview.steps) || [];
+  const holdFallback = isHeld && !pendingSteps.some(s=>s.kind==='hold')
+    ? [{kind:'hold', at:row.hold_at, by:row.hold_by, note:row.hold_reason}] : [];
 
   return (
     <div onMouseDown={e=>{if(e.target===e.currentTarget && !saving) onClose();}}
@@ -5354,20 +5517,81 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
             placeholder="자유롭게 메모 입력"
             style={inp({minHeight:70,resize:'vertical',fontFamily:'inherit'})}/>
 
-          {/* 추가 확인 필요 — 요청 중이면 눈에 띄게, 아니면 요청 버튼만 */}
+          {/* 추가 확인 필요 — 요청 중이면 눈에 띄게, 아니면 요청 버튼만.
+              사유·요청자는 바로 아래 '확인 요청 메모'에서 본다(여기서 또 찍으면 중복이다). */}
+          <div style={{marginTop:16}}>
           {row.needs_review ? (
-            <div style={{marginTop:16,padding:'12px 14px',background:'rgba(248,113,113,.12)',border:'1px solid rgba(248,113,113,.45)',borderRadius:6}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#f87171',marginBottom:6}}>🔎 추가 확인 필요</div>
-              <div style={{fontSize:13,color:'var(--text)',whiteSpace:'pre-wrap',marginBottom:8}}>{row.review_note||'(사유 미기재)'}</div>
-              <div style={{fontSize:11,color:'var(--sub)',marginBottom:10}}>요청: {row.review_requested_by||'-'} · {fmtDateTime(row.review_requested_at)}</div>
-              <button onClick={()=>performAction('resolve_review')} disabled={saving}
-                style={{fontSize:12,padding:'7px 12px',background:'rgba(126,217,87,.18)',border:'1px solid rgba(126,217,87,.5)',color:'#7ED957',borderRadius:6,cursor:saving?'not-allowed':'pointer',fontWeight:600}}>
-                ✓ 확인 완료 — 표시 해제
-              </button>
-              <span style={{fontSize:11,color:'var(--sub)',marginLeft:8}}>확인했거나 내용을 보완했으면 해제해 주세요.</span>
+            <div style={{padding:'12px 14px',borderRadius:6,
+              background: isHeld?'rgba(255,169,77,.12)':'rgba(248,113,113,.12)',
+              border:'1px solid '+(isHeld?'rgba(255,169,77,.5)':'rgba(248,113,113,.45)')}}>
+              <div style={{fontSize:12,fontWeight:700,color:isHeld?'#FFA94D':'#f87171',marginBottom:8,
+                display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                {isHeld ? '⏸ 보류 중' : '🔎 추가 확인 필요'}
+                {isHeld && row.hold_until && (
+                  <span style={{fontSize:11,fontWeight:600,
+                    color: row.hold_until < todayLocal() ? '#FF6B6B' : 'var(--sub)'}}>
+                    재개 예정 {row.hold_until}{row.hold_until < todayLocal() ? ' · 지났습니다' : ''}
+                  </span>
+                )}
+              </div>
+              {/* 이 건에 지금까지 무슨 일이 있었는지를 여기서 다 읽을 수 있어야 한다.
+                  아래 목록으로 내려보내면 이력이 쌓였을 때 진행 중인 건이 그 안에 묻히고,
+                  보류를 풀면 hold_* 가 지워져 보류했던 사실 자체가 화면에서 사라진다. */}
+              {stepLine('request',
+                pendingReview ? pendingReview.at : row.review_requested_at,
+                (pendingReview ? pendingReview.actor : row.review_requested_by),
+                (pendingReview ? pendingReview.note : row.review_note) || '(사유 미기재)')}
+              {[...pendingSteps, ...holdFallback].map((st,i)=>stepLine(st.kind, st.at, st.by, st.note, 'ps'+i))}
+              <div style={{fontSize:11,color:'var(--sub)',marginBottom:6,marginTop:10}}>이 처리에 메모를 남기시겠어요? (선택)</div>
+              <textarea value={resolveNote} onChange={e=>setResolveNote(e.target.value)} rows={2}
+                placeholder="예: 주문자와 통화해 예금주 본인 확인함"
+                style={{width:'100%',fontSize:13,padding:'8px 10px',background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontFamily:'inherit',boxSizing:'border-box',resize:'vertical',marginBottom:8}}/>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                <button onClick={()=>performAction('resolve_review')} disabled={saving}
+                  style={{fontSize:12,padding:'7px 12px',background:'rgba(126,217,87,.18)',border:'1px solid rgba(126,217,87,.5)',color:'#7ED957',borderRadius:6,cursor:saving?'not-allowed':'pointer',fontWeight:600}}>
+                  ✓ 확인 완료 — 표시 해제
+                </button>
+                {isHeld ? (
+                  <button onClick={()=>performAction('resume_review')} disabled={saving}
+                    style={{fontSize:12,padding:'7px 12px',background:'transparent',border:'1px solid rgba(248,113,113,.45)',color:'#f87171',borderRadius:6,cursor:saving?'not-allowed':'pointer'}}
+                    title="보류를 풀고 다시 '확인 필요' 상태로 되돌립니다">
+                    🔎 보류 해제 — 다시 확인 필요
+                  </button>
+                ) : (!holdOpen && (
+                  <button onClick={()=>setHoldOpen(true)} disabled={saving}
+                    style={{fontSize:12,padding:'7px 12px',background:'transparent',border:'1px solid rgba(255,169,77,.5)',color:'#FFA94D',borderRadius:6,cursor:saving?'not-allowed':'pointer'}}
+                    title="지금 진행할 수 없는 건이면 보류로 빼 둡니다">
+                    ⏸ 보류로 전환
+                  </button>
+                ))}
+                <span style={{fontSize:11,color:'var(--sub)'}}>메모 없이 바로 해제해도 됩니다.</span>
+              </div>
+              {/* 보류 전환 폼 — 사유는 필수, 재개 예정일은 선택 */}
+              {holdOpen && !isHeld && (
+                <div style={{marginTop:10,padding:'10px 12px',background:'var(--bg)',border:'1px solid rgba(255,169,77,.5)',borderRadius:6}}>
+                  <div style={{fontSize:11,color:'var(--sub)',marginBottom:6}}>왜 보류하나요? (필수)</div>
+                  <textarea value={holdReason} onChange={e=>setHoldReason(e.target.value)} rows={2}
+                    placeholder="예: 고객 연락 두절 — 9월 초 재시도 예정"
+                    style={{width:'100%',fontSize:13,padding:'8px 10px',background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontFamily:'inherit',boxSizing:'border-box',resize:'vertical'}}/>
+                  <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,color:'var(--sub)'}}>재개 예정일 (선택)</span>
+                    <input type="date" value={holdUntil} onChange={e=>setHoldUntil(e.target.value)}
+                      style={{fontSize:12,padding:'6px 8px',background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontFamily:'inherit'}}/>
+                  </div>
+                  <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <button onClick={()=>performAction('hold_review')} disabled={saving||!holdReason.trim()}
+                      style={{fontSize:12,padding:'7px 12px',background:holdReason.trim()?'rgba(255,169,77,.18)':'transparent',border:'1px solid rgba(255,169,77,.5)',color:holdReason.trim()?'#FFA94D':'var(--sub)',borderRadius:6,cursor:(saving||!holdReason.trim())?'not-allowed':'pointer',fontWeight:600}}>
+                      보류로 전환
+                    </button>
+                    <button onClick={()=>{setHoldOpen(false);setHoldReason('');setHoldUntil('');setErr('');}} disabled={saving}
+                      style={{fontSize:12,padding:'7px 12px',background:'transparent',border:'1px solid var(--border)',color:'var(--sub)',borderRadius:6,cursor:'pointer'}}>취소</button>
+                    {!holdReason.trim() && <span style={{fontSize:11,color:'#FF6B6B'}}>보류 사유를 적어주세요</span>}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (!isReadOnly && (
-            <div style={{marginTop:16}}>
+            <div>
               {reviewOpen ? (
                 <div style={{padding:'12px 14px',background:'var(--bg)',border:'1px solid rgba(248,113,113,.45)',borderRadius:6}}>
                   <div style={{fontSize:11,color:'var(--sub)',marginBottom:6}}>어떤 확인이 필요한가요? (필수)</div>
@@ -5390,42 +5614,60 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
                   🔎 추가 확인 요청
                 </button>
               )}
-              {/* 예전에 한 번 막혔던 건이면 그 기록을 남겨 보여준다 */}
-              {row.review_note && row.review_resolved_at && (
-                <div style={{marginTop:8,fontSize:11,color:'var(--sub)',lineHeight:1.6}}>
-                  지난 확인 요청: {row.review_note}
-                  <br/>해제: {row.review_resolved_by||'-'} · {fmtDateTime(row.review_resolved_at)}
-                </div>
-              )}
             </div>
           ))}
 
+          {/* 지난 확인 요청 — 해제까지 끝난 것만 쌓인다(진행 중인 건은 위 박스에 있다).
+              접어 두는 것이 기본이다. 여러 건 쌓이면 폼이 길어져 아래 처리 이력까지 멀어진다.
+              완료 건(읽기 전용)에서도 보여준다 — 왜 한 번 멈췄었는지는 남아야 한다. */}
+          {resolvedReview.length>0 && (
+            <div style={{marginTop:10}}>
+              <button onClick={()=>setReviewListOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',gap:6,width:'100%',padding:'6px 0',
+                  background:'transparent',border:'none',color:'var(--sub)',fontSize:11,fontWeight:500,
+                  fontFamily:'inherit',cursor:'pointer',textAlign:'left'}}>
+                <span style={{fontSize:9}}>{reviewListOpen?'▼':'▶'}</span>
+                지난 확인 요청 ({resolvedReview.length}건)
+                {!reviewListOpen && <span style={{color:'var(--sub)',opacity:.7}}>— 펼쳐보기</span>}
+              </button>
+              <div style={{display:reviewListOpen?'flex':'none',flexDirection:'column',gap:6}}>
+                {resolvedReview.map(r=>{
+                  const active = !r.resolvedAt;
+                  return (
+                    <div key={r.id} style={{padding:'8px 10px',background:'var(--bg)',borderRadius:6,
+                      border:'1px solid '+(active?'rgba(248,113,113,.45)':'var(--border)')}}>
+                      {/* 요청 → (보류 → 보류 해제) → 확인 완료 를 한 줄씩. 위 박스와 같은 모양이다.
+                          메모는 그 처리에 딸린 것임이 보이도록 왼쪽 선을 긋는다. */}
+                      {stepLine('request', r.at, r.actor, r.note || '(사유 미기재)')}
+                      {active && <div style={{fontSize:11,color:'#f87171',fontWeight:600,marginBottom:6}}>· 진행 중</div>}
+                      {(r.steps||[]).map((st,i)=>stepLine(st.kind, st.at, st.by, st.note, 'st'+i))}
+                      {!active && stepLine('resolve', r.resolvedAt, r.resolvedBy, r.resolvedNote)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          </div>
+
           {/* 이력 박스 */}
           <div style={{marginTop:16,padding:'10px 12px',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,fontSize:11,color:'var(--sub)',lineHeight:1.7}}>
-            {/* 처리 이력 한 줄기 — 오래된 것부터 아래로 쌓인다.
-                이력 기능(2026-08-07) 이전 건은 로그가 없으므로 행의 상태 컬럼에서 유추해 채우고,
-                같은 처리의 로그가 있으면 유추분은 버린다(그래야 같은 사건이 두 번 찍히지 않는다). */}
+            {/* 처리 이력 한 줄기 — 오래된 것부터 아래로, 시간순 그대로.
+                항목명·시각·처리 계정만 찍는다. **메모 본문은 여기 넣지 않는다** —
+                확인 요청 사유는 위 '확인 요청 메모'에서 보므로 여기 또 찍으면 중복이다.
+                무엇을 어떻게 합치는지는 buildRefundTimeline() 주석 참고. */}
             {historyLoading ? (
               <div>이력 불러오는 중...</div>
             ) : (()=>{
-              const logged = new Set((history||[]).map(h=>h.action));
-              const derived = [];
-              const add=(action,at,by)=>{ if(!logged.has(action) && at) derived.push({id:'d-'+action,action,created_at:at,actor:by}); };
-              add('create',          row.created_at,          row.created_by);
-              if(row.updated_at && row.updated_at!==row.created_at) add('update', row.updated_at, row.updated_by);
-              if(row.refund_completed) add('refund_complete', row.refund_completed_at, row.refund_completed_by);
-              if(row.cafe24_done)      add('cafe24_done',     row.cafe24_done_at,      row.cafe24_done_by);
-              const items = [...derived, ...(history||[])]
-                .sort((a,b)=> new Date(a.created_at) - new Date(b.created_at));
+              const items = buildRefundTimeline(row, history);
               return (<>
                 {items.map(h=>(
                   <div key={h.id}>
                     <b style={{color:REFUND_ACTION_COLOR[h.action]||'var(--text)'}}>{REFUND_ACTION_LABEL[h.action]||h.action}</b>
                     : {fmtDateTime(h.created_at)} · {h.actor||'-'}
-                    {h.note && <span style={{color:'var(--sub)'}}> — {h.note}</span>}
                   </div>
                 ))}
-                {history===null && <div>이후 이력을 불러오지 못했습니다. (처리에는 영향이 없습니다)</div>}
+                {history===null && <div>이력을 불러오지 못했습니다. (처리에는 영향이 없습니다)</div>}
               </>);
             })()}
           </div>
@@ -5466,6 +5708,12 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
                 필수 항목 미입력: {missingFields.join(', ')}
               </span>
             )}
+            {/* 보류 중에는 환불·후처리 처리를 막는다. 회색 버튼에는 이유를 함께 적는다(v20260810a 와 같은 방식). */}
+            {!isReadOnly && isValid && isHeld && (
+              <span style={{fontSize:11,color:'#FFA94D',lineHeight:1.5}}>
+                보류 중 — 위에서 해제한 뒤 처리할 수 있습니다
+              </span>
+            )}
             <button onClick={()=>{if(!saving) onClose();}} disabled={saving}
               style={{fontSize:13,padding:'8px 14px',background:'transparent',border:'1px solid var(--border)',color:'var(--sub)',borderRadius:6,cursor:saving?'not-allowed':'pointer'}}>닫기</button>
             {!isReadOnly && (
@@ -5475,14 +5723,16 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
               </button>
             )}
             {stKey==='pending2' && (
-              <button onClick={()=>performAction('mark_refund_complete')} disabled={saving || !isValid}
-                style={{fontSize:13,padding:'8px 14px',background:'rgba(246,173,9,.18)',border:'1px solid rgba(246,173,9,.5)',color:'#F6AD09',borderRadius:6,cursor:(saving||!isValid)?'not-allowed':'pointer',fontWeight:600}}>
+              <button onClick={()=>performAction('mark_refund_complete')} disabled={saving || !isValid || isHeld}
+                title={isHeld?'보류 중입니다. 위에서 보류를 해제한 뒤 처리하세요.':undefined}
+                style={{fontSize:13,padding:'8px 14px',background:(isValid&&!isHeld)?'rgba(246,173,9,.18)':'transparent',border:'1px solid rgba(246,173,9,.5)',color:(isValid&&!isHeld)?'#F6AD09':'var(--sub)',borderRadius:6,cursor:(saving||!isValid||isHeld)?'not-allowed':'pointer',fontWeight:600}}>
                 ✓ 환불 완료 처리
               </button>
             )}
             {stKey==='pending3' && (
-              <button onClick={()=>performAction('mark_cafe24_done')} disabled={saving || !isValid}
-                style={{fontSize:13,padding:'8px 14px',background:'rgba(120,170,255,.18)',border:'1px solid rgba(120,170,255,.5)',color:'#78AAFF',borderRadius:6,cursor:(saving||!isValid)?'not-allowed':'pointer',fontWeight:600}}>
+              <button onClick={()=>performAction('mark_cafe24_done')} disabled={saving || !isValid || isHeld}
+                title={isHeld?'보류 중입니다. 위에서 보류를 해제한 뒤 처리하세요.':undefined}
+                style={{fontSize:13,padding:'8px 14px',background:(isValid&&!isHeld)?'rgba(120,170,255,.18)':'transparent',border:'1px solid rgba(120,170,255,.5)',color:(isValid&&!isHeld)?'#78AAFF':'var(--sub)',borderRadius:6,cursor:(saving||!isValid||isHeld)?'not-allowed':'pointer',fontWeight:600}}>
                 ✓ 후처리 완료
               </button>
             )}
@@ -6082,7 +6332,7 @@ function RefundManagementPage({ currentUserEmail }) {
   const [fWriter,setFWriter]=useState('');           // 작성자 email 또는 ''
   const [fSearch,setFSearch]=useState('');
   const [period,setPeriod]=useState('all');          // 'all','this_month','last_month','last_7d'
-  const [activeKpi,setActiveKpi]=useState(null);     // null|'thisMonth'|'pendingRefund'|'pendingCafe24'|'needsReview'
+  const [activeKpi,setActiveKpi]=useState(null);     // null|'thisMonth'|'pendingRefund'|'pendingCafe24'|'needsReview'|'held'
 
   const load = async ()=>{
     setLoading(true);
@@ -6136,7 +6386,8 @@ function RefundManagementPage({ currentUserEmail }) {
     if(periodFilter && !periodFilter(r)) return false;
     if(activeKpi==='pendingRefund' && r.refund_completed) return false;
     if(activeKpi==='pendingCafe24' && !(r.refund_completed && !r.cafe24_done)) return false;
-    if(activeKpi==='needsReview' && !r.needs_review) return false;
+    if(activeKpi==='needsReview' && !(r.needs_review && r.review_state!=='held')) return false;
+    if(activeKpi==='held' && r.review_state!=='held') return false;
     if(fReason && String(r.reason_id)!==String(fReason)) return false;
     if(fStatus){
       const st = refundStatusOf(r).key;
@@ -6267,8 +6518,12 @@ function RefundManagementPage({ currentUserEmail }) {
   const kpi = {
     periodCount:    inPeriod.length,
     // 확인 필요는 기간과 무관하게 전체에서 센다 — 지난달 건이라도 막혀 있으면 지금 처리해야 할 일이다.
-    needsReview:    refunds.filter(r=>r.needs_review).length,
-    myNeedsReview:  refunds.filter(r=>r.needs_review && r.created_by===currentUserEmail).length,
+    // ★ 보류는 따로 센다. '지금 할 수 있는 일'과 '기다려야 하는 일'이 한 숫자에 섞이면
+    //   무엇을 붙잡아야 할지가 안 보인다(보류 도입 이유가 그것이다).
+    needsReview:    refunds.filter(r=>r.needs_review && r.review_state!=='held').length,
+    held:           refunds.filter(r=>r.review_state==='held').length,
+    heldOverdue:    refunds.filter(r=>r.review_state==='held' && r.hold_until && r.hold_until < todayLocal()).length,
+    myNeedsReview:  refunds.filter(r=>r.needs_review && r.review_state!=='held' && r.created_by===currentUserEmail).length,
     pendingRefund:  inPeriod.filter(r=>!r.refund_completed).length,
     pendingCafe24:  inPeriod.filter(r=>r.refund_completed && !r.cafe24_done).length,
     periodAmount:   inPeriod.reduce((s,r)=>s+(r.refund_amount||0),0),
@@ -6351,8 +6606,10 @@ function RefundManagementPage({ currentUserEmail }) {
         </div>
       )}
 
-      {/* KPI 5개 (클릭으로 필터 토글) */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:20}}>
+      {/* KPI 6개 (클릭으로 필터 토글).
+          보류 카드가 늘면서 6개가 됐다. 고정 6칸으로 두면 좁은 화면에서 숫자가 눌리므로
+          자리가 모자라면 줄을 바꾸게 한다(환불액 카드는 글자가 길다). */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:20}}>
         {(()=>{
           // 카드 공용: 선택 상태일 때 강조 보더 + 약한 배경
           const baseStyle = {background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'14px 16px',cursor:'pointer',transition:'all 0.15s'};
@@ -6362,6 +6619,7 @@ function RefundManagementPage({ currentUserEmail }) {
           const card2Active = activeKpi==='pendingRefund';
           const card3Active = activeKpi==='pendingCafe24';
           const cardReviewActive = activeKpi==='needsReview';
+          const cardHeldActive   = activeKpi==='held';
           return (<>
             <div onClick={()=>setActiveKpi(null)}
               style={{...baseStyle, ...(activeKpi===null?{}:{opacity:0.85})}}>
@@ -6383,6 +6641,16 @@ function RefundManagementPage({ currentUserEmail }) {
               style={{...baseStyle, ...(cardReviewActive?activeStyle('#f87171'):{})}}>
               <div style={{fontSize:11,color:'var(--sub)',display:'flex',alignItems:'center',gap:4}}>추가 확인 필요 {cardReviewActive && <span style={{fontSize:9,color:'#f87171'}}>● 필터 적용 중</span>}</div>
               <div style={{fontSize:22,fontWeight:700,marginTop:4,color:kpi.needsReview?'#f87171':'var(--sub)'}}>{kpi.needsReview}건</div>
+            </div>
+            {/* 보류 — 확인 필요와 성격이 다른 일거리(기다리는 중)라 숫자를 나눠 둔다.
+                재개 예정일이 지난 건이 있으면 그 수를 함께 띄운다. 보류는 잊히는 게 가장 큰 위험이다. */}
+            <div onClick={()=>setActiveKpi(cardHeldActive?null:'held')}
+              style={{...baseStyle, ...(cardHeldActive?activeStyle('#FFA94D'):{})}}>
+              <div style={{fontSize:11,color:'var(--sub)',display:'flex',alignItems:'center',gap:4}}>보류 {cardHeldActive && <span style={{fontSize:9,color:'#FFA94D'}}>● 필터 적용 중</span>}</div>
+              <div style={{fontSize:22,fontWeight:700,marginTop:4,color:kpi.held?'#FFA94D':'var(--sub)'}}>
+                {kpi.held}건
+                {kpi.heldOverdue>0 && <span style={{fontSize:11,color:'#FF6B6B',marginLeft:6,fontWeight:600}}>재개일 지남 {kpi.heldOverdue}</span>}
+              </div>
             </div>
             <div onClick={()=>setActiveKpi(null)}
               style={{...baseStyle, ...(activeKpi===null?{}:{opacity:0.85})}}>
@@ -6557,12 +6825,19 @@ function RefundManagementPage({ currentUserEmail }) {
                       <div style={{display:'flex',gap:4,justifyContent:'center',alignItems:'center',flexWrap:'wrap'}}>
                         <span style={{background:st.bg,color:st.fg,padding:'3px 8px',borderRadius:4,fontSize:11,whiteSpace:'nowrap'}}>{st.label}</span>
                         {/* 추가 확인 필요 — 기존 상태와 별개로 덧붙는 표시. 사유는 마우스를 올리면 보인다. */}
-                        {r.needs_review && (
+                        {r.needs_review && (r.review_state==='held' ? (
+                          <span title={(r.hold_reason||'사유 미기재')+'\n보류: '+(r.hold_by||'-')
+                                       +'\n최초 요청 사유: '+(r.review_note||'미기재')}
+                            style={{background:'rgba(255,169,77,.18)',color:'#FFA94D',padding:'3px 8px',borderRadius:4,fontSize:11,whiteSpace:'nowrap',fontWeight:600,cursor:'help'}}>
+                            ⏸ 보류{r.hold_until ? ` (~${r.hold_until.slice(5)})` : ''}
+                            {r.hold_until && r.hold_until < todayLocal() && <span style={{color:'#FF6B6B'}}> !</span>}
+                          </span>
+                        ) : (
                           <span title={(r.review_note||'사유 미기재')+'\n요청: '+(r.review_requested_by||'-')}
                             style={{background:'rgba(248,113,113,.18)',color:'#f87171',padding:'3px 8px',borderRadius:4,fontSize:11,whiteSpace:'nowrap',fontWeight:600,cursor:'help'}}>
                             🔎 확인 필요
                           </span>
-                        )}
+                        ))}
                       </div>
                     </td>
                   </tr>
