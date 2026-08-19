@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!-- v20260819j_report_layout -->
+<!-- (2026-08-19) [dev→prod 이식] Report 탭 가독성 조정(사용자 요청). ①사유별 도넛과 공급사별 막대의 2단 폭을 반반(1fr 1fr)에서 0.85fr 1.15fr 로 바꿨다 — 도넛은 범례가 오른쪽에 붙어 좁아도 읽히지만, 가로 막대는 폭이 곧 이름칸 + 막대 길이라 넓을수록 낫다. ②왼쪽 이름축의 자르는 길이는 16자 그대로 둔다 — 22자로 늘렸다가 사용자 지시로 되돌렸다(dev v20260819i 로 한 번 나갔던 상태). 16자가 넘는 이름은 …으로 자르고 전체는 막대 툴팁 제목에서 본다(data.labels 는 원문 그대로). 축 방향은 가로 막대 유지 — 상품명이 길어 세로로 두면 이름이 눕거나 잘린다(사용자와 합의). 집계·데이터 변경 없음. -->
+<!-- v20260819h_hbar_value_ticks -->
+<!-- (2026-08-19) [dev→prod 이식] 가로 막대의 아래축(값축)이 건수 모드에서 숫자 대신 공급사명·상품명을 찍던 것을 고쳤다. 브라우저 실측: 차트2 의 x(linear) 눈금이 '올인홈 | 블랙라인 | 타카타카…' 였는데, 이는 y 이름 목록의 0·2·4·6·8 번째다 — x축 눈금값(숫자)을 이름표로 바꿔 찍고 있었다. ★★ 원인: Chart.js 는 indexAxis:'y' 여도 x 자리에 '이름축(category) 기본값'을 먼저 얹는다. type 만 linear 로 덮으면 함께 딸려 온 '값을 라벨로 바꾸는 눈금 콜백'이 남는다. 금액 모드는 ₩…만 콜백을 직접 줘서 멀쩡했고 건수만 깨졌던 이유가 이것이다(사용자 제보와 일치). → 값축은 건수든 금액이든 항상 콜백을 직접 준다. ★ 가로 막대를 또 만들 일이 있으면 type 과 눈금 콜백을 둘 다 명시할 것 — 이 함정은 세로 막대에서는 안 나온다. 집계·데이터·다른 차트는 그대로다. -->
+<!-- v20260819g_hbar_name_axis -->
+<!-- (2026-08-19) [dev→prod 이식] 가로 막대 두 개의 왼쪽 이름축이 공급사명·상품명 대신 '0·1·2' 줄 번호를 찍던 것을 고쳤다. 사용자가 '막대 길이와 y축 숫자가 안 맞는다'고 한 그 숫자의 정체가 이것이다 — 건수가 아니라 몇 번째 줄인지였다. 실측(브라우저 콘솔에서 Chart.getChart 로 확인): 아래축 x(linear)는 ₩0·₩5만…으로 정상인데 왼쪽축 y(category)의 눈금이 0|1|2|3|4 였고, 라벨은 data.labels 에 9~10개 들어 있었다. 세로 방향 category 축이 data.labels 를 집지 못해 값(인덱스)을 그대로 라벨로 쓴 것이다. → 이름 목록을 축 옵션(labels)에 직접 넘기는 nameAxis(entries) 를 만들어 두 차트가 같이 쓴다. ★ autoSkip:false 를 함께 켰다 — 10개 중 몇 개만 찍히면 막대와 이름이 한 줄씩 밀려 보인다(진단 페이지에서 실제로 그랬다). ★ 16자가 넘는 이름은 잘라 그린다. 안 자르면 이름칸이 그래프를 밀어내 막대가 뭉개진다. data.labels 는 원문 그대로라 막대에 마우스를 올리면 전체 이름이 툴팁 제목으로 보인다. 집계·데이터·다른 차트는 그대로다. -->
+<!-- v20260819f_hbar_ticks -->
+<!-- (2026-08-19) [dev→prod 이식] 가로 막대 두 개(공급사별·상품별)의 값축 눈금을 손봤다(사용자 제보 — '숫자가 막대 건수와 안 맞는다'). ①건수일 때 Chart.js 가 값이 작으면 0.2·0.4 같은 소수 눈금을 찍어, 3건짜리 막대 옆에 소수가 나열되니 숫자가 어긋나 보였다 → precision:0 에 더해 눈금 간격을 최대값에서 뽑아(ceil(max/6)) 항상 정수만 찍는다. ②금액일 때 50000·100000 처럼 원시 숫자가 그대로 찍혔다 → 일자별 추이 차트와 같은 '₩5만' 표기로 통일했다. 값축 만드는 코드를 valueAxis(entries) 하나로 모아 두 차트가 같이 쓴다 — 두 곳에서 따로 그리면 한쪽만 고쳐져 어긋난다. 축 방향·집계·데이터는 v20260819e 그대로다(아래축=값, 왼쪽축=이름). -->
+<!-- v20260819e_hbar_axis_fix -->
+<!-- (2026-08-19) [dev→prod 이식] 환불 Report 탭의 '공급사별 상위 10'·'상품별 상위 10' 두 그래프가 축만 그려지고 막대가 안 나오던 것을 고쳤다(사용자 제보). 원인은 데이터가 아니라 축 설정이다 — 이 둘은 앱에서 유일하게 가로 막대(indexAxis:'y')인데, BASE_OPTS 의 scales 를 그대로 얹으면서 x·y 에 type 을 적지 않았다. 그러면 Chart.js 가 id 이름만 보고 x 를 이름축(category), y 를 값축(linear)으로 잡아 값이 어느 축에도 안 붙는다. 축·눈금은 멀쩡히 그려지므로 데이터 문제로 오해하기 쉽다. → 두 차트에 x:{type:'linear'} · y:{type:'category'} 를 명시했다. ★ 재현 실측(Chart.js 4.4.0): 지금 설정 → x=category·y=linear(막대 없음) / scales 를 아예 안 넘김 → 정상 / type 명시 → 정상 / BASE_OPTS 깊은 복사 → 여전히 깨짐(공유 객체 문제가 아니다). scales 를 빼도 되지만 그러면 눈금·격자 색이 다른 차트와 달라져 type 명시 쪽을 택했다. ★ 앞으로 가로 막대를 추가하면 축 type 을 반드시 적을 것. 집계·데이터·다른 차트는 건드리지 않았다. -->
 <!-- v20260819d_hold_alert_wording -->
 <!-- (2026-08-19) [dev→prod 이식] 보류 알림 문구만 사용자 표현으로 교체했다. 배너는 '[보류 확인 알림] 재개 예정일 확인 N건이 있습니다. 확인 후 보류 해제 하거나 재개일을 재설정 해주세요.', KPI 보류 카드의 꼬리 표기는 '재개일 도래 N' → '재개일 알림 N'. 판정 기준(hold_until <= 오늘)과 동작은 v20260819c 그대로다. -->
 <!-- v20260819c_hold_bulk_guard -->
@@ -6177,6 +6187,43 @@ function RefundReportTab({ reasons }){
     .map(([name,arr])=>({ name, value: valOf(arr), count:arr.length }))
     .sort((a,b)=>b.value-a.value).slice(0,10);
 
+  // 가로 막대(공급사별·상품별)의 값축 = 아래쪽 x축.
+  // ★ 건수는 정수 눈금만 찍는다 — 최대 3건짜리 그래프에 0.2·0.4 가 찍히면 막대 숫자와 안 맞아 보인다
+  //   (2026-08-19 사용자 제보). 눈금 간격도 최대값에서 뽑아 항상 정수가 되게 한다.
+  // ★ 금액은 일자별 추이 차트와 같은 '₩1200만' 표기를 쓴다 — 여기만 원시 숫자면 눈이 걸린다.
+  const valueAxis = (entries)=>{
+    const max = Math.max(1, ...entries.map(e=>e.value));
+    return {
+      type:'linear', beginAtZero:true,
+      ticks:{...BASE_OPTS.scales.x.ticks,
+        // ★★ 눈금 콜백을 반드시 직접 준다. Chart.js 는 indexAxis:'y' 여도 x 자리에 '이름축'
+        //    기본값을 먼저 얹는데, type 만 linear 로 덮으면 딸려 온 '값을 라벨로 바꾸는 콜백'이
+        //    남아 아래축에 숫자 대신 공급사명·상품명이 찍힌다(2026-08-19 실측).
+        //    금액은 ₩ 콜백을 주고 있어 멀쩡했고 건수만 깨졌던 게 이 때문이다.
+        callback: metric==='count' ? (v)=>v : (v)=>'₩'+(v>=10000?Math.round(v/10000)+'만':v),
+        ...(metric==='count' ? {precision:0, stepSize: Math.max(1, Math.ceil(max/6))} : {}),
+      },
+      grid:{...BASE_OPTS.scales.x.grid},
+    };
+  };
+
+  // 가로 막대의 이름축 = 왼쪽 y축.
+  // ★ 이름 목록을 축에 직접 넘긴다. data.labels 에만 두면 세로 방향 category 축이 그걸 못 집어
+  //   '0·1·2' 같은 줄 번호를 찍는다(2026-08-19 실측 — 막대 길이와 숫자가 안 맞는다는 제보의 정체).
+  // ★ autoSkip 을 끄지 않으면 10개 중 몇 개만 찍혀 막대와 이름이 한 줄씩 밀려 보인다.
+  // ★ 긴 상품명은 16자에서 잘라 그린다 — 안 자르면 이름칸이 그래프를 밀어내 막대가 뭉개진다.
+  //   22자로 늘렸다가 사용자 지시로 되돌렸다(2026-08-19). 이름칸이 넓어지는 만큼 막대가 짧아진다.
+  //   전체 이름은 막대에 마우스를 올리면 툴팁 제목으로 보인다(data.labels 는 원문 그대로 둔다).
+  const nameAxis = (entries)=>{
+    const names = entries.map(e=>e.name);
+    return {
+      type:'category', labels:names,
+      ticks:{...BASE_OPTS.scales.y.ticks, autoSkip:false,
+        callback:(v,i)=>{ const t = String(names[i]||''); return t.length>16 ? t.slice(0,15)+'…' : t; }},
+      grid:{...BASE_OPTS.scales.y.grid},
+    };
+  };
+
   // 차트 색상 해석 (사유 color → hex)
   const reasonHex = (color)=>(REFUND_COLOR_MAP[color]||REFUND_COLOR_MAP.gray).fg;
 
@@ -6257,8 +6304,10 @@ function RefundReportTab({ reasons }){
           </div>
         </div>
 
-        {/* ②③ 2단: 사유별 도넛 + 공급사별 막대 */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+        {/* ②③ 2단: 사유별 도넛 + 공급사별 막대.
+            ★ 반반이 아니라 도넛을 좁히고 막대를 넓힌다(2026-08-19 사용자 요청) — 도넛은 범례가
+            오른쪽에 붙어 좁아도 읽히지만, 가로 막대는 폭이 곧 이름칸 + 막대 길이라 넓을수록 낫다. */}
+        <div style={{display:'grid',gridTemplateColumns:'0.85fr 1.15fr',gap:16,marginBottom:16}}>
           {/* ② 사유별 도넛 */}
           <div style={card}>
             <div style={chartTitle}>사유별 분포 ({metric==='count'?'건수':'금액'})</div>
@@ -6283,6 +6332,15 @@ function RefundReportTab({ reasons }){
               <ChartComp type="bar"
                 options={{
                   ...BASE_OPTS, indexAxis:'y',
+                  scales:{
+                    // ★ 가로 막대(indexAxis:'y')는 축 type 을 직접 적어야 한다. BASE_OPTS 처럼
+                    //   x·y 를 type 없이 넘기면 Chart.js 가 id 이름만 보고 x 를 이름축(category),
+                    //   y 를 값축(linear)으로 잡아 값이 어느 축에도 안 붙는다 — 축과 눈금은 멀쩡히
+                    //   그려지고 막대만 안 나온다(2026-08-19 실측). 축을 아예 안 넘겨도 정상이지만
+                    //   그러면 눈금·격자 색이 다른 차트와 달라진다.
+                    x:valueAxis(supplierEntries),
+                    y:nameAxis(supplierEntries),
+                  },
                   plugins:{...BASE_OPTS.plugins, legend:{display:false},
                     tooltip:{callbacks:{label:(ctx)=>` ${fmtVal(ctx.parsed.x)}`}}},
                 }}
@@ -6301,6 +6359,11 @@ function RefundReportTab({ reasons }){
             <ChartComp type="bar"
               options={{
                 ...BASE_OPTS, indexAxis:'y',
+                scales:{
+                  // ★ 축 type 을 빼면 막대가 안 그려진다 — 위 공급사별 차트의 주석 참고.
+                  x:valueAxis(productEntries),
+                  y:nameAxis(productEntries),
+                },
                 plugins:{...BASE_OPTS.plugins, legend:{display:false},
                   tooltip:{callbacks:{label:(ctx)=>` ${fmtVal(ctx.parsed.x)}`}}},
               }}
