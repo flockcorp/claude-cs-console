@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!-- v20260824a_edit_order_reset -->
+<!-- (2026-08-24) [dev→prod 이식] 환불 수정 창에서 주문번호를 고치면 앞 주문의 참고값(결제액·유입줄)을 지운다 — 추가 창에는 있던 초기화가 수정 창에만 빠져 있었다. 사소해 보이지만 결제액은 눌러서 환불 금액 칸에 넣는 칩이라, 주문번호를 바꿔 다시 조회하기 전에 그 칩을 누르면 다른 주문의 결제액이 환불 금액으로 들어간다. 결제수단(pgInfo)은 지우지 않는다 — 저장되는 값이고, 조회하면 «수기 송금 → 계좌이체 (토스페이먼츠)» 처럼 비교로 알려주는 것이 수정 창의 규칙이다. 로직·저장 동작은 그대로다. -->
+<!-- (2026-08-21) [dev→prod 이식] 결제수단 칸에 «PG사» 와 «어디서 들어온 주문인가» 를 함께 보여준다(사용자 요청). 실제 주문 2건으로 카페24 응답을 열어 확인했다 — payment_gateway_names(PG사 코드, 마켓 주문이면 null) · easypay_name(간편결제사) · bank_code_name(계좌이체·무통장 은행) · order_place_name(모바일웹/네이버 페이) · market_order_no(있으면 마켓 주문) 가 모두 온다. 그래서 결제수단 칸은 «계좌이체 (토스페이먼츠)» 처럼 PG사까지 담은 한 줄이 되고, 그 아래에 «🛒 네이버 페이 주문 · 마켓주문번호 …» 또는 «↩ 모바일웹 · 입금 토스뱅크» 를 참고로 적는다(저장하지 않는다 — 판단용이다). 마켓 주문은 주황색으로 눈에 띄게 했다: PG 를 안 타는 주문이라 환불 경로가 다르기 때문이다. ★ 조합은 엣지 함수(refund-fetch-order)가 만들어 ref_payment_label 로 내려주므로 두 창이 같은 문자열을 쓴다. 함수가 아직 옛 버전이면 그 칸이 없으므로 예전 필드(ref_payment_method)로 물러서게 해 뒀다 — 화면만 먼저 배포해도 깨지지 않는다. 함수 수정본은 백업 저장소에 준비돼 있고 배포는 별도다. -->
+<!-- v20260821m_paymethod_field -->
+<!-- (2026-08-21) [dev→prod 이식] 환불 두 창의 «PG 정보» 칸을 «결제수단» 칸으로 바꾼다(사용자 지시). 선택지가 '수기 송금' 하나뿐이라 아무것도 알려주지 않던 자리여서, 카페24 주문서에서 읽어온 원 결제수단을 담는 칸으로 쓴다. 주문번호를 조회하면 자동으로 채워지고(추가 창은 덮어쓰기, 수정 창은 빈 칸만 채우고 값이 다르면 «수기 송금 → 신용카드» 처럼 알려만 준다 — 기존 규칙 그대로), 조회를 못 했거나 값이 이상하면 직접 고칠 수 있다. ★ select 를 자유 입력으로 바꾼 이유가 중요하다 — 옵션에 없는 값(예전 건의 '수기 송금'이나 새 값 '신용카드')이 들어오면 select 는 빈칸으로 보이고 그대로 저장하면 값이 날아간다. 그래서 두 창을 반드시 함께 바꿔야 했다. 기본값 '수기 송금'도 걷어냈다: 칸의 뜻이 '카페24 원 결제수단'이 된 이상 기본값을 지어내면 안 된다. 필수 항목 안내 문구도 'PG 정보' → '결제수단'으로 바꿨다. 저장 칸은 그대로 refunds.pg_info 를 쓴다 — DB·Edge Function 변경 없음. ⚠ 그래서 예전 행에는 '수기 송금', 새 행에는 '신용카드' 처럼 뜻이 다른 값이 섞인다. 예전 건은 수정 창에서 조회하면 정정할 수 있다. -->
+<!-- v20260821l_refund_paymethod -->
+<!-- (2026-08-21) [dev→prod 이식] 환불 요청 추가 창에서 카페24 주문을 조회하면 «결제수단» 을 화면에 고정으로 표기한다(사용자 요청). 값 자체는 이미 Edge Function(refund-fetch-order)이 ref_payment_method 로 내려주고 있었고 조회 성공 안내 문구 안에만 잠깐 보였다 — 주문번호를 고치면 그 문구가 사라져 정작 필요한 순간에는 남아 있지 않았다. 이제 «PG 정보» 라벨 오른쪽에 «카페24 결제수단 · 신용카드» 꼴로 붙는다. 그 자리를 고른 이유는 PG 정보가 '이 건을 어떻게 환불할지'를 정하는 칸이고 원 결제수단이 그 판단의 근거이기 때문이다. 겸해서 주문번호를 고치면 앞 주문의 참고값(결제액·결제수단)을 지운다 — 남아 있으면 다른 주문의 결제 정보를 보고 판단하게 된다. 참고용이므로 저장되는 값에는 넣지 않았고, DB·Edge Function 변경도 없다. 수정 창은 이번에 손대지 않았다. -->
 <!-- v20260821k_num_center -->
 <!-- (2026-08-21) [dev→prod 이식] ★★★ 오른쪽 정렬한 숫자의 마지막 획이 잘리던 것을 다섯 번째에 끝냈다. 스크린샷을 픽셀로 재서 확정했다 — 입력칸 테두리는 x=18~107(폭 90px), 글자 9 는 x=82~87 로 온전하고 0 은 x=89~93 까지만 그려졌는데, 오른쪽 획이 놓일 자리인 x=94 는 순백이었다. 그 x=94 가 바로 테두리(107)에서 오른쪽 패딩(13)을 뺀 내용 영역의 오른쪽 끝이다. 즉 앞 버전(h)의 패딩은 분명히 먹고 있었고 글자와 테두리 사이도 14px 이나 비어 있었지만, 그래도 잘렸다. 오른쪽 정렬한 글자는 폭을 넓혀도 여백을 줘도 늘 내용 영역의 오른쪽 끝에 딱 붙어 끝나기 때문이다 — 경계를 움직이면 글자도 함께 움직인다. 그 경계에서 브라우저가 1px 을 버리므로 폭도 여백도 답이 아니었다. → 칸 크기가 아니라 정렬을 바꾼다. 두세 자리 숫자만 들어가는 칸(해지 통보 기한·재검토 착수·가정값 기본값과 범위·비교 기간)은 가운데 정렬로 옮겨 글자가 양쪽 경계에서 멀리 떨어지게 했다 — 이제 어느 반올림도 글자에 닿지 못한다. 금액칸(.tcc-in-num·가정값 칩)은 자릿수를 맞춰 읽는 칸이라 오른쪽 정렬을 그대로 두고, 대신 letter-spacing 으로 마지막 글자 뒤에 1px 의 여백을 두어 경계에서 떼어놓았다. 계산·저장 로직은 건드리지 않았다. -->
 <!-- v20260821j_man_unit -->
@@ -4752,6 +4759,34 @@ async function logRefund(refundId, action, actor, note, createdAt){
   if(error) console.error('[환불 이력 기록] 실패:', action, error);
 }
 
+// 카페24 조회 응답에서 «어디서 들어온 주문인가»를 뽑는다 — 환불 두 창이 함께 쓴다.
+// 결제수단은 저장하는 칸(결제수단)이 담당하고, 여기 값들은 판단용 참고 표시라 저장하지 않는다.
+// 엣지 함수가 옛 버전이면 이 칸들이 없으므로 null 을 돌려 아무것도 그리지 않는다.
+function orderInfoOf(data){
+  if(!data) return null;
+  const place  = (data.ref_order_place||'').trim();
+  const bank   = (data.ref_bank_name||'').trim();
+  const market = !!data.ref_is_market;
+  const mno    = (data.ref_market_order_no||'').trim ? (data.ref_market_order_no||'').trim() : '';
+  if(!place && !bank && !market) return null;
+  return {place, bank, market, mno};
+}
+
+// 참고 표시 한 줄. «네이버 페이 주문 · 마켓주문번호 …» / «모바일웹 · 입금 토스뱅크»
+function OrderInfoLine({info}){
+  if(!info) return null;
+  const parts = [];
+  if(info.place) parts.push(info.market ? `${info.place} 주문` : info.place);
+  if(info.mno)   parts.push(`마켓주문번호 ${info.mno}`);
+  if(info.bank)  parts.push(`입금 ${info.bank}`);
+  if(parts.length===0) return null;
+  return (
+    <div style={{fontSize:10,color: info.market ? '#F6AD09' : 'var(--sub)',marginTop:-8,marginBottom:14}}>
+      {info.market ? '🛒 ' : '↩ '}{parts.join(' · ')}
+    </div>
+  );
+}
+
 // ─── RefundAddModal: 환불 요청 추가 모달 (신규 등록 전용) ───────────
 // props: reasons (사유 마스터 배열), currentUserEmail, onClose, onSaved
 function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
@@ -4765,7 +4800,8 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
   const [bankHoverIdx,setBankHoverIdx]= useState(0);     // 키보드 ↑↓ 으로 이동하는 활성 인덱스
   const [accountNumber,setAccountNumber]=useState('');
   const [accountHolder,setAccountHolder]=useState('');
-  const [pgInfo,      setPgInfo]      = useState('수기 송금');
+  // 결제수단 — 옛 'PG 정보'. 카페24 조회로 채운다(v20260821m). 기본값을 두지 않는다.
+  const [pgInfo,      setPgInfo]      = useState('');
   // 선택 필드 (카페24 자동 채움 예정)
   const [customerName,setCustomerName]= useState('');
   const [customerPhone,setCustomerPhone]=useState('');
@@ -4776,6 +4812,8 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
   const [fetching,setFetching]=useState(false);       // 조회 중
   const [fetchMsg,setFetchMsg]=useState(null);        // {type:'ok'|'err', text} 조회 결과 안내
   const [refPaymentAmount,setRefPaymentAmount]=useState(null); // 참고용 결제액
+  const [refPaymentMethod,setRefPaymentMethod]=useState('');   // 참고용 결제수단(카페24)
+  const [orderInfo,setOrderInfo]=useState(null);               // 참고용 유입 경로·마켓 여부
   // 저장 상태
   const [saving,setSaving]=useState(false);
   const [err,setErr]=useState('');
@@ -4806,6 +4844,14 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
       if(data.customer_name)  setCustomerName(data.customer_name);
       if(data.customer_phone) setCustomerPhone(data.customer_phone);
       setRefPaymentAmount(data.ref_payment_amount ?? null);
+      // ref_payment_label 은 «계좌이체 (토스페이먼츠)» 처럼 PG사까지 담은 한 줄이다.
+      // 엣지 함수가 아직 옛 버전이면 없으므로 옛 필드로 물러선다.
+      const payLabel = data.ref_payment_label || data.ref_payment_method || '';
+      setRefPaymentMethod(payLabel);
+      // 결제수단 칸은 카페24 값으로 채운다(추가 창은 덮어쓰기가 원칙).
+      // 카페24 쪽이 비어 있으면 사람이 넣은 값을 지우지 않는다.
+      if(payLabel) setPgInfo(payLabel);
+      setOrderInfo(orderInfoOf(data));
       const refInfo = [];
       if(data.ref_payment_method) refInfo.push(`결제수단 ${data.ref_payment_method}`);
       if(data.ref_payment_amount!=null) refInfo.push(`결제액 ${KRW(data.ref_payment_amount)}`);
@@ -4826,7 +4872,7 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
   // 긴 폼에서 어느 칸 때문인지 알 수 없다. 화면에 놓인 순서대로 나열한다.
   const missingFields = [
     [orderId,'주문번호'], [reasonId,'환불 사유'], [refundAmount,'환불 금액'],
-    [bankName,'은행'], [accountNumber,'계좌번호'], [accountHolder,'예금주'], [pgInfo,'PG 정보'],
+    [bankName,'은행'], [accountNumber,'계좌번호'], [accountHolder,'예금주'], [pgInfo,'결제수단'],
   ].filter(([v])=>!v).map(([,label])=>label);
   const isValid = missingFields.length===0;
 
@@ -4883,7 +4929,15 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
           <div style={lbl}>주문번호 *</div>
           <div style={{display:'flex',gap:8}}>
             <input type="text" value={orderId}
-              onChange={e=>{setOrderId(e.target.value); setFetchMsg(null);}}
+              onChange={e=>{
+                setOrderId(e.target.value);
+                setFetchMsg(null);
+                // 주문번호가 바뀌면 앞 주문의 참고값(결제액·결제수단)은 지운다 —
+                // 남아 있으면 다른 주문의 결제 정보를 보고 판단하게 된다.
+                setRefPaymentAmount(null);
+                setRefPaymentMethod('');
+                setOrderInfo(null);
+              }}
               onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault(); fetchOrder();}}}
               placeholder="예: 20260525-0009306-01" style={{...inp,fontFamily:'monospace',flex:1}}/>
             <button type="button" onClick={fetchOrder} disabled={fetching||!orderId.trim()}
@@ -5037,11 +5091,26 @@ function RefundAddModal({ reasons, currentUserEmail, onClose, onSaved }){
             <input type="text" value={accountHolder} onChange={e=>setAccountHolder(e.target.value)} placeholder="예금주" style={inp}/>
           </div>
 
-          {/* PG 정보 */}
-          <div style={lbl}>PG 정보 *</div>
-          <select value={pgInfo} onChange={e=>setPgInfo(e.target.value)} style={{...inp,marginBottom:14}}>
-            <option value="수기 송금">수기 송금</option>
-          </select>
+          {/* 결제수단 — 옛 «PG 정보» 자리다.
+              선택지가 '수기 송금' 하나뿐이라 아무것도 알려주지 않던 칸이어서,
+              카페24 주문서에서 읽어온 원 결제수단을 담는 칸으로 바꿨다(2026-08-21 사용자 지시).
+              조회하면 자동으로 채워지고, 조회를 못 했거나 값이 이상하면 직접 고칠 수 있다.
+              칩은 «지금 입력값과 카페24 값이 다를 때만» 나온다 — 같으면 잔소리가 된다. */}
+          <div style={{...lbl,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span>결제수단 *</span>
+            {refPaymentMethod && refPaymentMethod!==pgInfo && (
+              <span
+                onClick={()=>setPgInfo(refPaymentMethod)}
+                title="클릭하면 카페24 조회값으로 바꿉니다"
+                style={{fontSize:10,color:'#78AAFF',cursor:'pointer',fontWeight:400}}>
+                카페24 · {refPaymentMethod} ↵
+              </span>
+            )}
+          </div>
+          <input type="text" value={pgInfo} onChange={e=>setPgInfo(e.target.value)}
+            placeholder="카페24 조회 시 자동 입력 (예: 계좌이체 (토스페이먼츠))"
+            style={{...inp,marginBottom:orderInfo?4:14}}/>
+          <OrderInfoLine info={orderInfo}/>
 
           {/* 특이사항 */}
           <div style={lbl}>특이사항</div>
@@ -5128,7 +5197,9 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
   const [bankHoverIdx,setBankHoverIdx]= useState(0);
   const [accountNumber,setAccountNumber]=useState(row.account_number||'');
   const [accountHolder,setAccountHolder]=useState(row.account_holder||'');
-  const [pgInfo,      setPgInfo]      = useState(row.pg_info||'수기 송금');
+  // 결제수단 — 옛 'PG 정보'. 값이 없으면 '수기 송금'을 넣던 것을 걷어냈다(v20260821m):
+  // 이제 이 칸의 뜻이 '카페24 원 결제수단'이라 기본값을 지어내면 안 된다.
+  const [pgInfo,      setPgInfo]      = useState(row.pg_info||'');
   const [customerName,setCustomerName]= useState(row.customer_name||'');
   const [customerPhone,setCustomerPhone]=useState(row.customer_phone||'');
   const [productName, setProductName] = useState(row.product_name||'');
@@ -5145,6 +5216,7 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
   const [fetchMsg,setFetchMsg]=useState(null);   // {type:'ok'|'err', text}
   const [fetchDiff,setFetchDiff]=useState([]);   // 카페24와 다른 항목 [{label,cur,next,set}]
   const [refPaymentAmount,setRefPaymentAmount]=useState(null); // 참고용 결제액
+  const [orderInfo,setOrderInfo]=useState(null);               // 참고용 유입 경로·마켓 여부
 
   const fetchOrder = async ()=>{
     const oid = orderId.trim();
@@ -5171,6 +5243,12 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
         {label:'공급사명', cur:supplierName,  next:(data.supplier_name ||'').trim(), set:setSupplierName},
         {label:'주문자명', cur:customerName,  next:(data.customer_name ||'').trim(), set:setCustomerName},
         {label:'휴대전화', cur:customerPhone, next:(data.customer_phone||'').trim(), set:setCustomerPhone},
+        // 결제수단(옛 'PG 정보')도 같은 규칙을 탄다 — 빈 칸이면 채우고, 다르면 알려만 준다.
+        // ★ 예전 건은 이 칸에 '수기 송금'이 들어 있어 «수기 송금 → 계좌이체 (토스페이먼츠)» 로 뜬다.
+        //   그게 맞는 동작이다. 바꿀지는 [카페24 값으로 바꾸기]로 사람이 정한다.
+        // ref_payment_label 은 PG사까지 담은 한 줄. 엣지 함수가 옛 버전이면 없으므로 물러선다.
+        {label:'결제수단', cur:pgInfo,
+         next:((data.ref_payment_label||data.ref_payment_method)||'').trim(), set:setPgInfo},
       ];
       const filled=[], diff=[];
       targets.forEach(t=>{
@@ -5180,6 +5258,7 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
       });
       setFetchDiff(diff);
       setRefPaymentAmount(data.ref_payment_amount ?? null);
+      setOrderInfo(orderInfoOf(data));
       const refInfo = [];
       if(data.ref_payment_method) refInfo.push(`결제수단 ${data.ref_payment_method}`);
       if(data.ref_payment_amount!=null) refInfo.push(`결제액 ${KRW(data.ref_payment_amount)}`);
@@ -5209,7 +5288,7 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
   // 필수 입력 체크. 추가 창과 같은 기준·같은 순서다(둘 중 한쪽만 고치지 말 것).
   const missingFields = [
     [orderId,'주문번호'], [reasonId,'환불 사유'], [refundAmount,'환불 금액'],
-    [bankName,'은행'], [accountNumber,'계좌번호'], [accountHolder,'예금주'], [pgInfo,'PG 정보'],
+    [bankName,'은행'], [accountNumber,'계좌번호'], [accountHolder,'예금주'], [pgInfo,'결제수단'],
   ].filter(([v])=>!v).map(([,label])=>label);
   const isValid = missingFields.length===0;
 
@@ -5417,7 +5496,15 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
           <div style={lbl}>주문번호 *</div>
           <div style={{display:'flex',gap:8}}>
             <input type="text" value={orderId}
-              onChange={e=>{setOrderId(e.target.value); setFetchMsg(null); setFetchDiff([]);}}
+              onChange={e=>{
+                setOrderId(e.target.value);
+                setFetchMsg(null); setFetchDiff([]);
+                // 주문번호가 바뀌면 앞 주문의 참고값(결제액·유입줄)은 지운다 — 추가 창과 같은 규칙이다.
+                //   특히 결제액 칩은 눌러서 환불 금액에 넣는 자리라, 남아 있으면 다른 주문의 금액을 넣게 된다.
+                //   결제수단(pgInfo)은 저장되는 값이라 지우지 않는다 — 조회하면 비교로 알려준다.
+                setRefPaymentAmount(null);
+                setOrderInfo(null);
+              }}
               onKeyDown={e=>{if(e.key==='Enter' && !isReadOnly){e.preventDefault(); fetchOrder();}}}
               disabled={isReadOnly} placeholder="예: 20260525-0009306-01" style={inp({fontFamily:'monospace',flex:1})}/>
             {!isReadOnly && (
@@ -5590,11 +5677,16 @@ function RefundEditModal({ row, reasons, currentUserEmail, onClose, onSaved }){
             <input type="text" value={accountHolder} onChange={e=>setAccountHolder(e.target.value)} disabled={isReadOnly} placeholder="예금주" style={inp()}/>
           </div>
 
-          {/* PG 정보 */}
-          <div style={lbl}>PG 정보 *</div>
-          <select value={pgInfo} onChange={e=>setPgInfo(e.target.value)} disabled={isReadOnly} style={inp({marginBottom:14})}>
-            <option value="수기 송금">수기 송금</option>
-          </select>
+          {/* 결제수단 — 옛 «PG 정보» 자리. 추가 창과 같은 칸을 쓴다(둘 중 한쪽만 고치지 말 것).
+              선택지가 '수기 송금' 하나뿐이라 아무것도 알려주지 않던 칸이어서,
+              카페24 주문서의 원 결제수단을 담게 바꿨다(2026-08-21 사용자 지시).
+              ★ select 로 두면 예전 건의 '수기 송금'이나 새 값 '신용카드'가 옵션에 없을 때
+                칸이 비어 보이고 저장 시 값이 날아간다 — 그래서 자유 입력으로 바꿨다. */}
+          <div style={lbl}>결제수단 *</div>
+          <input type="text" value={pgInfo} onChange={e=>setPgInfo(e.target.value)} disabled={isReadOnly}
+            placeholder="카페24 조회 시 자동 입력 (예: 계좌이체 (토스페이먼츠))"
+            style={inp({marginBottom:orderInfo?4:14})}/>
+          <OrderInfoLine info={orderInfo}/>
 
           {/* 특이사항 */}
           <div style={lbl}>특이사항</div>
