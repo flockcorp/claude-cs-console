@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!-- v20260916h_hint_gap_down -->
+<!-- (2026-09-16) [dev→prod 이식] 제니: 「상단 제목 우측에 들어간 메시지는 마우스 커서 때문에 문구 앞부분이 잘 안 보여」. ★★★ **위로 열릴 때와 아래로 열릴 때의 사정이 다르다** — 커서 그림은 손이 짚은 자리에서 **오른쪽 «아래» 로** 뻗는다(「?」 는 `cursor:help` 라 화살표에 물음표가 붙어 더 길다). 그래서 위로 열리는 풍선에는 커서가 닿지 않고, **아래로 열리는 풍선만 첫 줄 앞부분이 덮인다.** 통계 화면 맨 위의 「?」 는 위에 자리가 없어 아래로 여는 자리라(`up = r.top > 150`) 거기서만 제보가 나왔다 — **같은 조각인데 자리에 따라 다른 병을 앓는다.** → **아래로 열릴 때만** 사이를 벌렸다(8 → 20px). 위로 열리는 자리는 그대로 둔다: 멀쩡한 쪽까지 벌리면 «풍선이 떠 있다» 는 느낌만 늘어난다. ★★ **가로로 피하는 길은 답이 아니다** — 커서는 짚은 자리에서 오른쪽으로 20px 남짓 뻗으므로 풍선을 그만큼 왼쪽으로 밀면 덮이는 글자가 앞이 아니라 «가운데» 로 옮겨갈 뿐이다. 세로로 비키는 것 말고는 길이 없다(09-16 «오른쪽 정렬 숫자 잘림» 과 같은 계열 — 폭·여백을 만지다가 정작 바꿔야 할 것이 따로 있는 자리). ⚠ **커서 크기는 잴 수 없는 값이다**(브라우저가 OS 커서를 그리고 화면 찍기에도 안 담긴다) — 윈도우 기본 커서가 32px 이라는 것을 근거로 20 을 골랐다. 첫 줄 글자가 「?」 위쪽 끝에서 44px 아래에 서므로 여느 자리에서는 8px 남는다. **이 값만은 «재서» 정하지 못했다는 것을 여기 적어 둔다.** ★ dev 전용. -->
+<!-- v20260916g_intake_star_group -->
+<!-- (2026-09-16) [dev→prod 이식] 제니 제보: 「묶음 중 한 건에서만 고객 이력 «첫 줄이 아닌» 메시지에 별을 켰더니, 공급사 접수 메뉴에서 같은 묶음인데 접수 사유가 다르게 들어간다」. 그럴 수밖에 없었다 — 별(접수 사유로 쓸 줄)은 **티켓마다 따로** 저장되는데(`cs_tickets.intake_event_ids`) 한 건에만 켰기 때문이고, 별이 하나도 없는 형제는 «가장 이른 고객 이력 한 줄» 이라는 기본 규칙으로 돌아 **서로 다른 문장**이 나갔다. ★★★ **«품목마다 다를 수 있나» 가 아니라 «한 사건인가» 로 가른다**(제니가 09-08 담당자에서 세운 기준 그대로) — 접수 사유는 «고객이 한 말» 이고 묶음은 한 번 접수하고 한 번 회신받는 **한 사건**이다. 단계·리체크·담당자와 같은 무리이므로 **묶음 전부에 함께 켠다.** ★★★ 게다가 이 값은 **한 통의 메일에 함께 담기는 값**이라 갈리면 그 자리에서 바로 사고가 된다 — 같은 묶음 두 줄이 서로 다른 사유를 달고 공급사에 나간다. ★★ **고치는 자리가 둘이다**: ①켤 때 묶음 전부에 저장(앞으로) ②읽을 때 **묶음의 별을 합쳐서** 본다(이미 갈려 있는 옛 티켓 때문에 — 읽는 쪽이 마지막 방어선이다). **앞으로만 고치면 오늘 이전에 켜 둔 것은 영영 갈린 채로 나간다.** ★ 저장에도 오늘 세운 «0행» 셈을 넣었다 — 막히면 별을 되돌리고 말해 준다(켜진 줄 알고 문안을 보내면 엉뚱한 사유가 나간다). 일부만 갔으면 몇 건인지 적는다. ★ dev 전용. -->
+<!-- v20260916f_history_own_ticket -->
+<!-- (2026-09-16) [dev→prod 이식] 제니 둘. ①**이력의 #번호를 «실제로 남긴 티켓» 의 번호로.** 제니: 「이력은 메인·서브 어느 티켓을 봐도 동기화되어 같은 내용을 보는 거니까, 티켓 번호는 이력 남긴 티켓의 번호로」. 그동안은 사람이 적은 글을 **늘 메인에** 쌓아서, 서브에서 적어도 이력 줄의 #번호가 메인으로만 찍혔다 — **«누가 어디서 남겼는지» 가 사라졌다.** → 적은 그 티켓에 쌓는다(환불 요청·환불 완료 이력도 그 티켓으로). ★★★ **쌓는 자리를 바꾸면 «읽는 자리» 를 전부 그 규칙에 맞춰야 한다** — 09-04·09-08 에 이미 두 번 밟은 자리다(«메인에만 쌓인다» 를 전제로 메인 번호로 찾던 곳들이 조용히 빈 값을 낸다). 훑어서 넷을 함께 고쳤다: 상세 이력 조회(이미 묶음 전체라 그대로) · **목록 «사진 첨부» 세기** · **접수 문안의 「접수 사유」** · **접수 문안의 사진**. ★★ 판정을 `csGroupKey`(묶음 열쇠 = 메인 번호) 한 곳에 뒀다 — «나 또는 메인» 처럼 번호 둘을 견주는 식은 형제가 끼면 틀린다. ★★★ 접수 문안에서는 **지도를 인자로 돌리지 않고 «이력 줄에 제 묶음을 적어 둔다»**(`_gk`) — 인자가 지나는 길이 넷이면 한 곳만 빠뜨려도 조용히 옛 판정으로 돈다. **값을 옮기는 대신 값이 스스로 알게 한다.** ★ 묶음 전부를 먼저 물어(`or(id.in, main_ticket_id.in)`) 번호를 모은다 — 목록에 형제가 안 보이는 경우(칩·검색)를 위해 목록 사진 세기에도 «모르는 번호만 따로 묻는» 길을 뒀다. ②**등록 화면의 «저장 후 화면 유지» 가 빈 화면이었다.** 제니: 「저장하면 그 티켓 내용이 저장된 상태로 보여야 하는데 품목·이력이 날아가고 화면만 열린 채」. 값을 그대로 두는 길은 **못 간다** — 한 번 더 누르면 같은 티켓이 두 번 만들어진다(이 화면 최대 사고). ★★★ 그래서 «머문다» 를 **«그 티켓에 머문다»** 로 읽어 **방금 만든 티켓의 상세로 간다**(제니가 넷 중 고름). 상세 화면의 같은 설정과 뜻이 같아졌다 — 저장하고 그 자리에서 저장된 값을 본다. ★ dev 전용. -->
+<!-- v20260916e_cs_write_guards -->
+<!-- (2026-09-16) [dev→prod 이식] CS 관리 전체를 훑어(화면·RLS 정책·가드 트리거 세 겹 대조) 찾은 «조용히 어긋나는 자리» 를 고쳤다. 제니가 건마다 고칠지 정했다. 🔴🔴🔴 **①환불 요청이 «반쪽» 으로 끝날 수 있었다.** `csRefundFromTicket` 은 ⓐrefunds 행을 만들고 ⓑ그 번호를 티켓 `refund_id` 에 박는데, **ⓑ의 결과를 안 봤다.** 그런데 `cs_field_rules` 는 `refund_id` 를 **master 만** 고치게 해 뒀다 — 지금은 「환불 만들기」 동작 권한도 master 뿐이라 안 터지지만, **설정에서 그 권한을 manager 에게 켜는 순간** ⓐ는 되고 ⓑ는 트리거가 막으며 화면은 「넘겼습니다」라고 말한다. ★★★ 그 상태가 위험한 진짜 까닭은 «연결이 없다» 가 아니라 **중복을 막는 자물쇠가 바로 그 refund_id 라서** — 연결에 실패하면 같은 티켓에서 환불을 **또** 만들 수 있다(일괄은 건수만큼). → **되돌릴 수 없는 일을 시작하기 «전에» 둘 다 되는지 본다**(`csCanLinkRefund`) · 연결은 결과를 보고 한 번 재시도 · 그래도 실패하면 **이력에 «주인 없는 환불 #N» 을 남기고** 「다시 누르지 마세요」로 알리며 **일괄은 거기서 멈춘다**. 🔴 `csCanEditField` 를 그냥 못 쓴다 — 설정을 못 읽었을 때 그 함수는 «전원 허용» 으로, **트리거는 반대로 master 잠금**으로 물러선다. **폴백 방향이 반대인 두 판정을 같은 것으로 쓰면 화면만 «된다» 고 말한다.** ★★ **②쓰기는 «오류» 만 보면 안 된다 — 행 권한에 막히는 것은 «0행» 이다.** 일괄 수정과 [보냈음·진행중으로] 에 `.select('id')` 를 붙여 **바뀐 건수**를 세고, 0이면 멈추고 일부면 몇 건인지 말한다. 이력·보낸 시각·알림도 «고른 수» 가 아니라 «바뀐 수» 를 쓴다. 지금은 티켓 수정이 전원 허용이라 안 터진다 — **권한을 좁히는 날을 위한 셈**이다. ★★ **③이력 저장 실패를 말해 준다**(`csEventFail` 한 곳) — 여섯 자리가 콘솔 로그에만 찍고 있었다. 이력 실패는 저장을 되돌리지 않으므로(원칙 그대로) 알림의 일은 **「값은 갔고 기록만 빠졌다, 다시 남겨 달라」** 를 분명히 하는 것이다. 상세에서는 **적은 글을 안 비운다**(비우면 다시 남길 것이 사라진다). ★★ **④묶음 형제 저장 실패가 조용했다** — 게다가 이력에는 「단계·담당자는 묶음 N건에 함께 적용」이라고 **적힌다**. 안 갔는데 갔다고 적히면 나중에 목록에서 갈라진 것을 보고도 까닭을 못 찾는다. ★ **⑤등록 이력의 단계값**이 늘 `'received'` 로 박혀 있었다(고른 단계 `st` 를 이미 들고 있었다). 티켓 자체는 제대로 저장됐고 화면이 안 읽는 값이라 안 보였지만, **「종결 시각 채우기」 같은 DB 작업이 이 칸을 근거로 쓴다.** ★ **⑥통계 기간 「?」 둘** — «접수일 기준» 은 가져오는 티켓 자체를 정하므로 **접수일과 종결일이 둘 다 기간 안일 때만** 종결 막대에 잡힌다(제니 확인 후 참고 문구로). ★ 매크로 순서 맞바꾸기는 제니 판단으로 그대로 뒀다(가능성이 낮다). ★ dev 전용. -->
 <!-- v20260916d_pretendard_real -->
 <!-- (2026-09-16) [dev→prod 이식] 🔴🔴 **콘솔이 여태 Pretendard 로 그려진 적이 없다.** `body` 는 Pretendard 를 첫 글꼴로 적어 뒀는데, 그 글꼴을 부르던 한 줄이 **구글 폰트** 주소였고 **구글 폰트에는 Pretendard 가 없다**(그 주소를 직접 받아 보니 돌려주는 것은 Inter 뿐이다). 그래서 한글은 늘 «윈도우 기본 한글 글꼴(맑은 고딕)», 영문·숫자만 Inter 였다. ★★★ **「글꼴 이름을 적어 뒀다」 는 「그 글꼴로 그려진다」 가 아니다** — 없는 글꼴은 **소리 없이** 다음 것으로 넘어간다. 배포 «성공» 이 «내가 고친 것이 올라갔다» 가 아닌 것과 같은 계열이고, 이번에도 **받아서 확인하는 것** 말고는 알 길이 없었다. → 만든 곳 CDN 에서 **가변 글꼴 + 필요한 조각만**(dynamic-subset · CSS 60KB) 받는다. 글꼴 이름이 `Pretendard Variable` 이라 여섯 자리의 글꼴 목록 맨 앞에 그 이름을 넣었다(기기에 Pretendard 가 깔려 있으면 그것을, 아니면 Inter → 기본). ★★ **실제로 받아졌는지 재서 확인했다**: `document.fonts.check` 400·700 둘 다 참 · 같은 글자 폭이 **맑은 고딕 80.44px → 68.25px**. ★★★ **오늘 맞춘 세로 정렬은 이 변화에 안 흔들린다 — 재서 확인했다**: 고친 셋(칩·드롭박스·단추)은 키도 잉크 자리도 **글자 그대로 같다**(24/24/28 · 4/4 · 4/5 · 6/7). `lineHeight:1`+가운데 정렬이 **글꼴의 줄 높이를 셈에서 빼 버렸기** 때문이다 — 여백 숫자로 맞췄다면 오늘 전부 어긋났을 것이다. 거꾸로 **안 고친 자리들은 오히려 나아진다**(위8/아래6 → 5/6). 🔴 **달라지는 것은 «폭» 이다 — 같은 글자가 15% 좁아진다.** 줄바꿈·잘림 자리가 옮겨 가고 화면이 헐거워 보인다. 폭을 «자로 재게» 만들어 둔 단추들은 저절로 따라오지만(브라우저가 다시 잰다), 숫자로 박아 둔 자리가 있으면 그곳에 여백이 남는다. ★ dev 전용 — 제니가 화면을 보고 정한다. -->
 <!-- v20260916c_chip_pill_vs_box -->
@@ -1556,6 +1564,23 @@ async function csUserToken(){
   }catch(_e){}
   return SUPABASE_ANON_KEY;
 }
+// ★★★ 이력이 저장되지 않았을 때 «말해 준다»(2026-09-16 제니 지시).
+//   그전에는 콘솔 로그에만 찍혔다 — **사람에게는 아무 일도 없었던 것처럼 보였다.**
+//   ★★ 이력 실패는 저장을 되돌리지 않는다(환불 이력에서 세운 원칙 그대로). 값은 이미
+//     바뀌었고 그것이 사실이다. 그래서 알림의 일은 «되돌렸다» 가 아니라
+//     **「값은 갔고 기록만 빠졌다, 다시 남겨 달라」** 를 분명히 하는 것이다.
+//   ★ 언제 실패하나 — 저장 도중 연결이 끊겼거나, 로그인 토큰이 만료됐거나(오래 켜 둔 창),
+//     DB 가 값을 거절했을 때(«누가» 값이 목록에 없는 등). 드물지만 0은 아니다.
+//   ★ 적은 글이 날아가지 않게, 부르는 쪽에서 작성칸을 비우기 «전에» 부른다.
+function csEventFail(error, what){
+  if(!error) return false;
+  console.error('[CS 이력] 실패:', error);
+  toast('⚠ ' + what + '\n\n남기려던 내용이 이력에 저장되지 않았습니다.\n'
+      + '적은 내용을 복사해 두고 다시 남겨 주세요.\n'
+      + (error.message || ''), 'warn');
+  return true;
+}
+
 function sbFail(what, error, opts){
   if(!error) return false;
   // 조회 결과가 0건인 것은 실패가 아니다(.single() 이 내는 코드. .maybeSingle() 은 error 없이 data:null 을 준다)
@@ -7916,10 +7941,11 @@ async function csTicketsOnRefundDone(refundIds, actor){
     return 0;
   }
   const {error:e2} = await sb.from('cs_ticket_events').insert(targets.map(t=>({
-    ticket_id: t.main_ticket_id || t.id, side:'시스템', action:'환불완료',
+    ticket_id: t.id, side:'시스템', action:'환불완료',
     actor: actor || 'unknown', note:'환불이 완료되었습니다.',
   })));
-  if(e2) console.error('[환불→티켓] 이력 실패:', e2);   // 상태는 이미 바뀌었다
+  // 상태는 이미 바뀌었다 — 그 사실과 «기록만 빠졌다» 를 함께 말한다.
+  csEventFail(e2, '티켓 '+tids.length+'건을 «환불 완료» 로 옮겼지만 이력이 남지 않았습니다.');
   return tids.length;
 }
 
@@ -18817,6 +18843,23 @@ function csAddrText(z,a1,a2){
 // ★★ 개인정보는 목록에서 «가려» 그린다(계좌번호 — csMaskAcct). 상세는 한 건을 열어
 //   보는 자리지만 목록은 여러 건이 한 화면에 깔린 채로 오래 떠 있는 자리다.
 //   이력에 가린 값을 적기로 한 것과 같은 계열이다.
+// ★★★ 묶음 열쇠 — 한 사건을 함께 겪는 티켓들의 공통 번호다(= 메인의 번호).
+//   2026-09-16 에 **이력을 «적은 그 티켓» 에 쌓도록 바꾸면서** 필요해졌다.
+//   그전에는 이력이 늘 메인에 있어 «메인 번호» 하나로 찾으면 됐는데, 이제 이력이
+//   묶음 안 어느 티켓에도 있을 수 있다 — 읽는 쪽은 **«같은 묶음인가» 로** 봐야 한다.
+//   ★★ 제니: 「이력은 메인·서브 어느 티켓을 봐도 동기화되어 같은 내용을 본다 —
+//     티켓 번호는 이력을 남긴 티켓의 번호로」. 쌓는 자리가 바뀐 것이 아니라
+//     **«누가 남겼는지를 잃지 않게» 된 것**이다(상세의 이력 줄에 #번호가 찍힌다).
+function csGroupKey(t){ return t ? (t.main_ticket_id || t.id) : null; }
+// 티켓 목록에서 «티켓 번호 → 묶음 열쇠» 를 찾는 함수를 만든다.
+// ★ 목록에 없는 번호는 **제 번호가 곧 열쇠**다(묶음이 아니거나, 지금 화면이 못 본 티켓).
+//   모르면 «남의 묶음» 으로 섞지 않는 쪽이 안전하다.
+function csGroupLookup(list){
+  const m = {};
+  (list||[]).forEach(t=>{ if(t && t.id!=null) m[t.id] = csGroupKey(t); });
+  return (id)=> (m[id] != null ? m[id] : id);
+}
+
 // ── 목록의 «사진 첨부 여부» — 티켓에 몇 장이 붙어 있나 (제니 2026-09-08) ──────────
 // ★★★ **이력은 «메인 티켓에» 쌓인다**(묶음 설계). 그래서 서브 티켓의 사진도 메인에
 //   달려 있다 — `ticket_id === t.id` 로만 세면 **서브는 언제나 «없음»** 이 된다.
@@ -18830,13 +18873,26 @@ function csAddrText(z,a1,a2){
 //   조용히 «사진 0장» 이 되어 버리므로, 그때는 필터 없이 한 번 더 물어본다.
 // ★ 세는 데 실패해도 목록은 그대로 그린다 — 곁다리 열 하나 때문에 화면이 비면 안 된다.
 async function csWithPhotoCount(list){
-  const put = (rows)=>{
+  // ★★ 2026-09-16 — 이력이 «적은 그 티켓» 에 쌓이면서, 메인 번호 하나로는 다 못 센다.
+  //   묶음 열쇠로 모아 센다. 지금 목록에 없는 티켓의 이력도 있을 수 있어
+  //   (칩·검색으로 형제가 걸러진 경우) **그 번호들만 따로 물어** 지도를 채운다.
+  const put = async (rows)=>{
+    let gk = csGroupLookup(list);
+    const known = {}; (list||[]).forEach(t=>{ known[t.id]=1; });
+    const unknown = Array.from(new Set((rows||[])
+      .filter(r=>Array.isArray(r.attachments) && r.attachments.length>0)
+      .map(r=>r.ticket_id).filter(id=>id!=null && !known[id])));
+    if(unknown.length){
+      const {data:more} = await sb.from('cs_tickets')
+        .select('id,main_ticket_id').in('id', unknown);
+      if(more && more.length) gk = csGroupLookup((list||[]).concat(more));
+    }
     const cnt = {};
     (rows||[]).forEach(r=>{
       const n = Array.isArray(r.attachments) ? r.attachments.length : 0;
-      if(n>0) cnt[r.ticket_id] = (cnt[r.ticket_id]||0) + n;
+      if(n>0){ const k = gk(r.ticket_id); cnt[k] = (cnt[k]||0) + n; }
     });
-    return list.map(t=>({...t, _photos: cnt[t.main_ticket_id || t.id] || 0}));
+    return list.map(t=>({...t, _photos: cnt[csGroupKey(t)] || 0}));
   };
   let {data,error} = await sb.from('cs_ticket_events')
     .select('ticket_id,attachments').neq('attachments','[]');
@@ -20750,7 +20806,13 @@ function CsStatsPage(){
     <div style={{padding:'24px 32px'}}>
       <div className="cs-page-head" style={{marginBottom:16,display:'flex',alignItems:'baseline',gap:12,flexWrap:'wrap'}}>
         <h1 style={{fontSize:20,fontWeight:700,color:'var(--text)',margin:0}}>📊 CS 통계</h1>
-        <span style={{fontSize:12,color:'var(--sub)'}}>기간은 접수일 기준 · 상태는 지금 기준 · 건수는 티켓(품목) 기준</span>
+        <span style={{fontSize:12,color:'var(--sub)'}}>기간은 접수일 기준 · 상태는 지금 기준 · 건수는 티켓(품목) 기준
+          <span onClick={e=>e.stopPropagation()} style={{marginLeft:4}}>
+            <CsHint width={340}>{'«접수일 기준» 은 이 화면이 가져오는 티켓 자체를 정합니다 — '
+              + '고른 기간에 접수된 건만 들어옵니다.\n\n'
+              + '그래서 종결 건수·처리 시간도 «그 안에서» 센 값입니다. '
+              + '지난달에 접수돼 이번 달에 끝난 건은 «이번 달» 로 보면 어디에도 안 잡힙니다.\n\n'
+              + '끝낸 일의 양을 보려면 기간을 넉넉히 잡으세요.'}</CsHint></span></span>
       </div>
 
       {/* 기간 */}
@@ -20816,7 +20878,14 @@ function CsStatsPage(){
         {/* 추이 */}
         <div style={{...card,marginBottom:16}}>
           <div style={{...title,justifyContent:'space-between',flexWrap:'wrap'}}>
-            <span>접수·종결 추이 <span style={note}>종결은 종결된 날에 셉니다</span></span>
+            <span>접수·종결 추이 <span style={note}>종결은 종결된 날에 셉니다</span>
+              <span onClick={e=>e.stopPropagation()} style={{fontWeight:400,marginLeft:4}}>
+                <CsHint width={340}>{'이 화면은 «접수일» 이 기간 안인 티켓만 가져옵니다.\n'
+                  + '그래서 종결 막대에 잡히려면 접수일과 종결일이 «둘 다» 기간 안이어야 합니다.\n\n'
+                  + '지난달에 접수돼 이번 달에 끝난 건은 «이번 달» 로 보면 안 잡힙니다 — '
+                  + '기간을 두 달로 넓히면 잡힙니다.\n\n'
+                  + '그래서 이 막대는 «이 기간에 끝낸 일의 양» 이 아니라 '
+                  + '«이 기간에 접수된 것 중 끝난 것» 입니다.'}</CsHint></span></span>
             <div style={{display:'inline-flex',border:'1px solid var(--border)',borderRadius:6,overflow:'hidden'}}>
               {[['day','일'],['week','주'],['month','월']].map(([k,l],i)=>(
                 <button key={k} onClick={()=>setUnit(k===autoUnit?'':k)}
@@ -21016,6 +21085,9 @@ function CsStatsPage(){
 function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDraft,
                        chip, setChip}){
   const [rows,setRows]     = useState(null);   // null = 아직 안 읽음
+  // ★ 칸 규칙 — [환불 요청 하기] 를 그릴지 정하는 데 쓴다(2026-09-16). 상세 화면과 같은 값이라야
+  //   «목록에선 되는데 상세에선 안 되는» 자리가 안 생긴다.
+  const fieldRules = useCsFieldRules();
   // ★ 처음 보는 화면은 «전체» 다(제니). 「내 티켓」으로 열면 남이 만든 건이 안 보여
   //   「티켓이 없네」로 읽힌다 — 좁히는 것은 사람이 정할 일이다.
   // ★★★ 칩은 **App 이 들고 있다**(제니 2026-09-11: 「티켓 상세 화면 들어간 후
@@ -21407,9 +21479,28 @@ function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDr
   const applyBulk = async (patch, lines)=>{
     if(!pickedIds.length) return;
     setBulkBusy(true);
-    const {error} = await sb.from('cs_tickets')
-      .update({...patch, updated_by:currentUserEmail}).in('id', pickedIds);
+    // ★★★ **«몇 건이 실제로 바뀌었나» 를 센다**(2026-09-16 제니 지시).
+    //   전에는 `error` 만 봤다. 그런데 **행 권한(RLS)에 막히는 것은 «오류» 가 아니라
+    //   «0행» 이다** — 오류만 보면 한 건도 안 바뀐 것이 조용히 성공으로 읽히고,
+    //   화면은 고른 개수를 그대로 「30건을 바꿨습니다」라고 말한다.
+    //   ★★ 지금 티켓 수정 권한은 «콘솔 등록자 전원» 이라 아무도 안 막힌다. 이 셈은
+    //     **나중에 권한을 좁히는 날을 위한 것**이다 — 그날 화면이 거짓말을 시작한다.
+    //     (돈 관련 칸은 트리거가 «오류» 로 막으므로 그쪽은 원래 잡혔다.)
+    //   ★ 그래서 아래 이력·알림도 **고른 수가 아니라 «바뀐 수»** 를 쓴다.
+    const {data:hit, error} = await sb.from('cs_tickets')
+      .update({...patch, updated_by:currentUserEmail}).in('id', pickedIds).select('id');
     if(sbFail('일괄 수정', error, {write:true})){ setBulkBusy(false); return; }
+    const doneIds = (hit||[]).map(r=>r.id);
+    if(!doneIds.length){
+      toast('한 건도 바뀌지 않았습니다 — 이 티켓들을 고칠 권한이 없는 것 같습니다.\n'
+          + '관리자에게 알려 주세요.','warn');
+      setBulkBusy(false); return;
+    }
+    if(doneIds.length < pickedIds.length){
+      // ★ 일부만 간 것이 가장 나쁘다 — 말해 주지 않으면 나머지는 며칠 뒤에 발견된다.
+      toast('고른 '+pickedIds.length+'건 가운데 '+doneIds.length+'건만 바뀌었습니다.\n'
+          + '나머지 '+(pickedIds.length-doneIds.length)+'건은 권한에 막혔을 수 있습니다 — 목록에서 확인해 주세요.','warn');
+    }
     // ★★★ **«진행중» 으로 옮기는 것이 곧 «공급사에 보냈다» 는 뜻이다**(제니 2026-09-04:
     //   「공급사 전달은 메일·카톡·네이트온으로 따로 하고, 콘솔에서는 발송한 티켓을
     //   체크해 상태를 바꾸면 된다」). 그래서 그 시각을 여기서 함께 찍는다.
@@ -21419,7 +21510,9 @@ function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDr
     //   ★★ **비어 있는 건에만 찍는다.** 진행중 → 보류 → 다시 진행중 으로 돌아올 때
     //     새로 찍으면 «공급사가 며칠째 답이 없나» 가 그때마다 0일로 되감긴다.
     if(patch.stage==='awaiting'){
-      const first = pickedIds.filter(id=>
+      // ★ 실제로 바뀐 건에만 찍는다 — 안 바뀐 건에 «보낸 시각» 을 찍으면
+      //   그 티켓은 옛 단계 그대로인데 「며칠째 회신이 없나」만 세어지기 시작한다.
+      const first = doneIds.filter(id=>
         !(pageList.find(x=>x.id===id)||{}).supplier_sent_at);
       if(first.length){
         const {error:e0} = await sb.from('cs_tickets')
@@ -21427,16 +21520,18 @@ function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDr
         if(e0) console.error('[공급사 접수 시각] 실패:', e0);
       }
     }
-    const evs = pickedIds.map(id=>({
+    // ★ 이력도 «바뀐 건» 에만, 그 수로 적는다. 안 바뀐 티켓에 「바꿨다」는 줄이 남으면
+    //   이력이 사실과 다른 말을 한다.
+    const evs = doneIds.map(id=>({
       ticket_id:id, side:'원룸만들기', action:'수정', actor:currentUserEmail,
-      note: lines.join('\n')+'\n(목록에서 '+pickedIds.length+'건 함께 바꿈)',
+      note: lines.join('\n')+'\n(목록에서 '+doneIds.length+'건 함께 바꿈)',
       stage_after: patch.stage || null,
     }));
     // ★ 이력이 실패해도 저장을 되돌리지 않는다(환불 이력에서 정한 원칙 그대로).
     const {error:e2} = await sb.from('cs_ticket_events').insert(evs);
-    if(e2) console.error('[일괄 이력] 실패:', e2);
+    csEventFail(e2, '값은 '+doneIds.length+'건 바뀌었지만 이력이 남지 않았습니다.');
     setBulkBusy(false); setBulkOpen(null);
-    toast(pickedIds.length+'건을 바꿨습니다.','ok');
+    if(doneIds.length === pickedIds.length) toast(doneIds.length+'건을 바꿨습니다.','ok');
     setPicked({});
     load();
   };
@@ -21792,6 +21887,9 @@ function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDr
                 {(()=>{
                   // ★ 환불 메뉴를 못 쓰는 사람에게는 아예 안 보인다(제니 확인).
                   if(!canRefund) return null;
+                  // ★★ 티켓에 연결까지 못 하면 **누르면 안 되는 버튼**이다(2026-09-16) —
+                  //   눌러서 되는 데까지 갔다가 «반쪽» 으로 끝나느니 아예 안 보이는 편이 낫다.
+                  if(!csCanLinkRefund(fieldRules, role)) return null;
                   const rs = pickedIds.map(id=>pageList.find(x=>x.id===id))
                     .filter(t=>t && t.stage==='refund' && !t.refund_id);
                   if(!rs.length) return null;
@@ -21965,6 +22063,7 @@ function CsTicketsPage({currentUserEmail, role, canRefund, onNew, goTicket, goDr
             고른 것인지 헷갈린다. */}
       {refundBulk && (
         <CsRefundHandoffBulk list={refundBulk} currentUserEmail={currentUserEmail}
+          canLink={csCanLinkRefund(fieldRules, role)}
           onClose={()=>setRefundBulk(null)}
           onDone={(okN, failN)=>{
             setPicked({});
@@ -22120,6 +22219,23 @@ function csCanEditField(rules, id, role){
   const arr = (rules && rules[id] && Array.isArray(rules[id].edit)) ? rules[id].edit : null;
   if(!arr) return true;
   return arr.indexOf(role) >= 0;
+}
+// ★★★ 「환불 번호를 티켓에 박을 수 있나」 — 2026-09-16.
+//   이 판정이 따로 있는 까닭: 환불 요청은 **두 가지 권한이 동시에 있어야** 끝난다.
+//     ① refunds 에 행을 만들 수 있나 → 동작 권한 `refunds.create`
+//     ② 그 번호를 티켓의 refund_id 에 박을 수 있나 → 칸 권한 `cs_field_rules.refund_id`
+//   그런데 **둘은 서로를 모른다.** ①만 열어 주면 ②에서 DB 트리거가 막는데, 그때는
+//   이미 환불 행이 만들어진 뒤다 — **환불은 생겼는데 티켓에는 연결이 안 된 «반쪽» 상태**가 된다.
+//   ★★★ 그 상태가 위험한 진짜 까닭은 «연결이 없다» 가 아니다. **중복을 막는 자물쇠가
+//     바로 그 refund_id 라서**, 연결에 실패하면 같은 티켓에서 환불을 **또** 만들 수 있다.
+//   → **되돌릴 수 없는 일을 시작하기 «전에» 둘 다 되는지 본다.** 반쯤 된 상태가 가장 나쁘다.
+// 🔴 `csCanEditField` 를 그냥 쓰면 안 된다 — 설정을 «못 읽었을 때»(rules=null) 그 함수는
+//   «전원 허용» 으로 물러서는데, **DB 트리거는 반대로 돈 관련 칸을 master 로 잠근다.**
+//   폴백 방향이 서로 반대라 그대로 쓰면 화면만 «된다» 고 말한다. 여기서는 트리거를 따른다.
+function csCanLinkRefund(rules, role){
+  if(role === 'master') return true;
+  if(!rules) return false;
+  return csCanEditField(rules, 'refund_id', role);
 }
 // 설정을 한 번 읽어 둔다. null = 못 읽었다(그때는 위 폴백으로 돈다).
 function useCsFieldRules(){
@@ -24763,7 +24879,10 @@ function csRefundMissing(t){
     k==='refund_amount' ? (t||{}).refund_amount==null : !(t||{})[k]
   ).map(x=>x[1]);
 }
-async function csRefundFromTicket(t, reasonId, note, actor){
+async function csRefundFromTicket(t, reasonId, note, actor, canLink){
+  // ★★★ 환불 행을 만들기 «전에» 멈춘다(2026-09-16) — csCanLinkRefund 주석 참고.
+  //   여기서 안 막으면 환불만 생기고 티켓은 안 묶인 채로 남아, 중복 자물쇠가 풀린다.
+  if(canLink === false) return {ok:false, why:'환불 번호를 티켓에 연결할 권한이 없습니다 — 관리자에게 «환불 건 연결» 칸 권한을 함께 열어 달라고 하세요'};
   const {data:fresh} = await sb.from('cs_tickets').select('refund_id').eq('id',t.id).single();
   if(fresh && fresh.refund_id) return {ok:false, why:'이미 환불 #'+fresh.refund_id+' 로 넘어갔습니다'};
   const {data:ins, error} = await sb.from('refunds').insert({
@@ -24785,21 +24904,44 @@ async function csRefundFromTicket(t, reasonId, note, actor){
   if(error) return {ok:false, why:error.message};
   const rid = ins && ins.id;
   await logRefund(rid, 'create', actor, 'CS 티켓 #'+t.id+' 에서 넘어옴');
-  await sb.from('cs_tickets').update({
+  // ★★★ 여기서부터가 «되돌릴 수 없는 구간» 이다 — 환불 행은 이미 생겼다.
+  //   그래서 이 연결은 **실패를 봐야 한다**(2026-09-16). 전에는 결과를 안 봤고,
+  //   실패해도 화면은 「넘겼습니다」라고 말했다.
+  // ★★ `.select('id')` 를 붙인 까닭: **권한에 막히면 오류가 아니라 «0행» 으로 돌아오는**
+  //   길이 있다(RLS). 오류만 보면 그 길이 조용히 성공으로 읽힌다.
+  const link = async ()=> await sb.from('cs_tickets').update({
     refund_id: rid, refund_requested_at: new Date().toISOString(),
     refund_requested_by: actor, updated_by: actor,
-  }).eq('id', t.id);
-  await sb.from('cs_ticket_events').insert({
-    ticket_id: t.main_ticket_id || t.id, side:'원룸만들기', action:'환불요청',
+  }).eq('id', t.id).select('id');
+  let {data:linked, error:eLink} = await link();
+  // ★ 한 번은 다시 해 본다 — 잠깐 끊긴 것이라면 여기서 끝난다.
+  if(eLink || !(linked||[]).length){ const r2 = await link(); linked = r2.data; eLink = r2.error; }
+  if(eLink || !(linked||[]).length){
+    // ★★★ 이력에 **먼저** 남긴다. 이력은 티켓을 못 고치는 사람도 쌓을 수 있고,
+    //   이 줄이 없으면 «주인 없는 환불» 이 생긴 사실을 아무도 모른다.
+    await sb.from('cs_ticket_events').insert({
+      ticket_id: t.id, side:'시스템', action:'환불요청',
+      actor: actor || 'unknown',
+      note: '⚠ 환불 #'+rid+' 가 만들어졌지만 티켓에 연결하지 못했습니다.\n'
+          + '다시 누르면 환불이 하나 더 생깁니다 — 환불 관리에서 #'+rid+' 를 확인하세요.'
+          + (eLink && eLink.message ? '\n('+eLink.message+')' : ''),
+    });
+    return {ok:false, rid, orphan:true,
+      why:'환불 #'+rid+' 는 만들어졌는데 티켓에 연결하지 못했습니다 — 다시 누르지 마세요(환불이 하나 더 생깁니다). 환불 관리에서 #'+rid+' 를 확인해 주세요.'};
+  }
+  const {error:eEv} = await sb.from('cs_ticket_events').insert({
+    // ★ 환불을 요청한 «그 티켓» 에 남긴다(2026-09-16) — 묶음이라도 환불은 품목마다 따로다.
+    ticket_id: t.id, side:'원룸만들기', action:'환불요청',
     actor: actor,
     // ★ 문구는 제니가 정한 것(2026-09-09) — 「넘겼습니다」는 «자리를 옮겼다» 는 말이라
     //   무엇이 일어났는지 흐리다. 「요청했습니다」가 실제로 한 일이다.
     note: '환불을 요청했습니다 — 환불 #'+rid+' · '+Number(t.refund_amount).toLocaleString()+'원',
   });
+  csEventFail(eEv, '환불 #'+rid+' 로 넘어갔지만 티켓 이력이 남지 않았습니다.');
   return {ok:true, rid};
 }
 
-function CsRefundHandoff({t, currentUserEmail, onClose, onDone}){
+function CsRefundHandoff({t, currentUserEmail, canLink, onClose, onDone}){
   const [reasons,setReasons] = useState(null);
   const [reasonId,setReasonId] = useState('');
   const [note,setNote] = useState('');
@@ -24839,7 +24981,7 @@ function CsRefundHandoff({t, currentUserEmail, onClose, onDone}){
     if(miss.length){ setErr('티켓에 '+miss.join(' · ')+' 이(가) 비어 있습니다.'); return; }
     setBusy(true); setErr('');
     // ★ 넘기는 절차는 csRefundFromTicket 한 곳에 있다 — 일괄 모달과 같은 것을 쓴다.
-    const r = await csRefundFromTicket(t, reasonId, note, currentUserEmail);
+    const r = await csRefundFromTicket(t, reasonId, note, currentUserEmail, canLink);
     setBusy(false);
     if(!r.ok){ setErr(r.why); return; }
     onDone(r.rid);
@@ -24924,7 +25066,7 @@ function CsRefundHandoff({t, currentUserEmail, onClose, onDone}){
 //   대개 맞으므로 사람은 «안 맞은 것만» 손대면 된다 — 그래서 줄마다 고르게 두되
 //   맞은 것은 초록으로 표시해 지나가게 한다. 위쪽에 «한꺼번에 지정» 도 둔다.
 // ★ 메모는 하나다 — 건마다 다른 메모를 적을 일이면 애초에 일괄로 할 일이 아니다.
-function CsRefundHandoffBulk({list, currentUserEmail, onClose, onDone}){
+function CsRefundHandoffBulk({list, currentUserEmail, canLink, onClose, onDone}){
   const [reasons,setReasons] = useState(null);
   const [pick,setPick] = useState({});       // {티켓id: 사유id}
   const [note,setNote] = useState('');
@@ -24969,9 +25111,15 @@ function CsRefundHandoffBulk({list, currentUserEmail, onClose, onDone}){
     // ★ 하나씩 차례로 보낸다. 한꺼번에 던지면 어느 건이 실패했는지 짝짓기 어렵고,
     //   중간에 끊겨도 «어디까지 갔는지» 를 알 수 없다.
     for(const r of okRows){
-      const res = await csRefundFromTicket(r.t, pick[r.t.id], note, currentUserEmail);
+      const res = await csRefundFromTicket(r.t, pick[r.t.id], note, currentUserEmail, canLink);
       if(res.ok) ok.push({id:r.t.id, rid:res.rid});
-      else fail.push({id:r.t.id, why:res.why});
+      else {
+        fail.push({id:r.t.id, why:res.why});
+        // ★★★ 연결에 실패했다면 **거기서 멈춘다**(2026-09-16). 남은 건을 계속 보내면
+        //   같은 실패가 건수만큼 쌓여 «주인 없는 환불» 이 줄줄이 생긴다.
+        //   한 건이 그렇게 끝났다는 것은 이 계정이 티켓을 못 묶는다는 뜻이다.
+        if(res.orphan) break;
+      }
     }
     setBusy(false);
     setResult({ok, fail});
@@ -25513,7 +25661,16 @@ function CsHint({children, width, trigger}){
       const bw = boxRef.current ? boxRef.current.getBoundingClientRect().width : W;
       let left = r.left - 6;
       left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
-      setPos({left, up, top:r.bottom+8, bottom:window.innerHeight - r.top + 8,
+      // ★★★ 2026-09-16 제니 — 「상단 제목 우측 메시지는 마우스 커서 때문에 앞부분이 안 보여」.
+      //   ★★ **위로 열릴 때와 아래로 열릴 때의 사정이 다르다.** 커서 그림은 손이 짚은
+      //     자리에서 **오른쪽 «아래» 로 뻗는다**(화살표 + 물음표라 더 길다). 그래서
+      //     위로 열리는 풍선은 커서가 닿지 않고, **아래로 열리는 풍선만 첫 줄 앞부분이 덮인다.**
+      //     화면 맨 위의 「?」(위에 자리가 없어 아래로 연다)에서만 제보가 나온 까닭이 이것이다.
+      //   ★ 그래서 **아래로 열릴 때만** 사이를 벌린다(8 → 20). 위로 열리는 자리는 그대로 둔다 —
+      //     멀쩡한 쪽까지 같이 벌리면 «풍선이 떠 있다» 는 느낌만 는다.
+      //   ★ 가로로 피하는 길은 안 된다: 커서는 짚은 자리에서 오른쪽으로 20px 남짓 뻗는데,
+      //     풍선을 그만큼 왼쪽으로 밀면 덮이는 글자가 앞이 아니라 «가운데» 로 옮겨갈 뿐이다.
+      setPos({left, up, top:r.bottom+20, bottom:window.innerHeight - r.top + 8,
               // ★ 화살표는 «실제» 폭 안에 있어야 한다 — 고정폭을 기준으로 잡으면
               //   짧은 풍선에서 화살표가 판 밖으로 나간다.
               caret: Math.max(6, Math.min(r.left - left + 3, bw - 16)), bw});
@@ -26443,23 +26600,29 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
       ticket_id: mrow.id, side:n.side, action:'기록', actor:currentUserEmail,
       // ★ 사진만 남긴 줄은 note 를 «빈 문자열» 이 아니라 null 로 둔다 — 빈 문자열은
       //   «적었는데 비었다» 로 읽히고, 나중에 세면 한 종류로 잡힌다.
-      note:n.text || null, stage_after:'received', direction_after:f.direction||null,
+      // ★ 고른 단계 그대로(2026-09-16). 전에는 'received' 가 박혀 있어, 등록하면서
+      //   바로 «진행중» 으로 보낸 건도 이력에는 «티켓 등록» 으로 남았다.
+      note:n.text || null, stage_after: st, direction_after:f.direction||null,
       // 사진은 이미 올라가 있고 여기서는 주소만 적는다(2026-09-03).
       attachments: (n.photos||[]).map(p=>({url:p.url, name:p.name||null})),
     }));
     const {error:e2} = await sb.from('cs_ticket_events').insert(evs);
-    if(e2) console.error('[티켓 이력] 실패:', e2);
+    // ★ 티켓은 이미 만들어졌다 — 그 사실을 먼저 말해야 사람이 «다시 등록» 하지 않는다.
+    csEventFail(e2, '티켓 #'+made[0]+' 은 만들어졌습니다. 다시 등록하지 마세요.');
     setBusy(false);
     toast(made.length===1 ? '티켓 #'+made[0]+' 을 만들었습니다.'
       : '티켓 '+made.length+'건을 만들었습니다 — 메인 #'+mrow.id);
     if(afterSave==='list'){ onDone(); return; }
-    // ★★ «화면 유지» — 등록 화면에 남아 다음 건을 이어서 넣는다.
-    //   ★★★ **방금 만든 건의 값은 비운다.** 그대로 두면 한 번 더 눌렀을 때 같은
-    //     티켓이 두 번 만들어진다 — 이 화면에서 가장 큰 사고가 그것이다.
-    //   ★ 공통 폼(유형·방향·담당자 …)은 남긴다: 같은 조건으로 다음 건을 넣는 일이
-    //     잦고, 품목이 비어 있으면 어차피 저장이 안 되므로 위험하지 않다.
-    setRaw(''); setItems([]); setSel([]); setItemF({}); setNotes([]); setDraft('');
-    setDups(null); setByPhone(null); setCsInfo(null); setMsg(null);
+    // ★★★ «화면 유지» = **방금 만든 티켓을 계속 보고 있는다**(제니 2026-09-16).
+    //   그전에는 등록 화면에 남되 값을 «비웠다» — 제니 제보: 「티켓 내용이 저장된
+    //   상태로 그대로 보여져야 하는데 품목·이력이 날아가고 화면만 열린 채」.
+    //   ★★ 값을 그대로 두는 길은 못 간다 — **한 번 더 누르면 같은 티켓이 두 번 만들어진다.**
+    //     이 화면에서 가장 큰 사고가 그것이다.
+    //   ★★★ 그래서 «머문다» 를 **«그 티켓에 머문다»** 로 읽는다. 상세 화면의 같은
+    //     설정과 뜻이 같아진다(저장하고 그 자리에서 저장된 값을 본다) — 제니가
+    //     상세는 «정상» 이라고 한 그 동작이다. 묶음 형제도 상세에서 함께 보인다.
+    //   ★ 다음 건은 [목록으로] → [+ 티켓 등록] 이다. 값이 남아 헷갈릴 일이 없다.
+    goTicket(mrow.id);
   };
 
   const inp = {width:'100%',fontSize:12,padding:'7px 9px',background:'var(--bg)',
@@ -27620,6 +27783,15 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
   // ★ 값을 고치는 다른 칸들과 달리 **누르는 즉시 저장한다.** 이건 «무엇을 보낼지»
   //   고르는 표시일 뿐이라 [저장] 을 한 번 더 누르게 할 일이 아니고, 문안 버튼을
   //   바로 누를 수 있어야 한다(고르자마자 쓰는 값이다).
+  // ★★★ 2026-09-16 제니 — **별은 «묶음 전체» 에 함께 켜진다.**
+  //   제보: 「묶음 중 한 건에서만 첫 줄이 아닌 이력에 별을 켰더니, 공급사 접수 메뉴에서
+  //   같은 묶음인데 접수 사유가 서로 다르게 들어간다」. 그럴 수밖에 없었다 —
+  //   이 표시는 티켓마다 따로 저장되는데(intake_event_ids) 별은 한 건에만 켰기 때문이다.
+  //   ★★ **«품목마다 다를 수 있나» 가 아니라 «한 사건인가» 로 가른다**(제니가 09-08
+  //     담당자에서 세운 기준 그대로). 접수 사유는 «고객이 한 말» 이고, 묶음은 한 번
+  //     접수하고 한 번 회신받는 **한 사건**이다 — 단계·리체크·담당자와 같은 무리다.
+  //   ★★★ 그리고 이 값은 **한 통의 메일에 함께 담기는 값**이라, 갈리면 그 자리에서
+  //     바로 사고가 된다: 같은 묶음 두 줄이 서로 다른 사유를 달고 공급사에 나간다.
   const intakeIds = (t && Array.isArray(t.intake_event_ids)) ? t.intake_event_ids : [];
   const toggleIntake = async (evId)=>{
     if(!t) return;
@@ -27627,11 +27799,27 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
       ? intakeIds.filter(x=>x!==evId) : intakeIds.concat([evId]);
     // ★ 화면을 먼저 바꾼다 — 저장을 기다리면 별이 한 박자 늦게 켜져 «안 눌렸나» 가 된다.
     setT(p=>({...p, intake_event_ids: next}));
-    const {error} = await sb.from('cs_tickets')
-      .update({intake_event_ids: next}).eq('id', ticketId);
+    // ★ 묶음 전부에 같은 값을 쓴다. group 은 이 티켓을 포함한 형제 목록이다
+    //   (아직 안 읽혔으면 이 티켓 하나로 돈다).
+    const ids = (group && group.length) ? group.map(g=>g.id) : [ticketId];
+    const {data:hit, error} = await sb.from('cs_tickets')
+      .update({intake_event_ids: next}).in('id', ids).select('id');
     // ★ 실패하면 되돌린다 — 켜진 줄 알고 문안을 보내면 엉뚱한 사유가 나간다.
     if(sbFail('접수 사유 표시', error, {write:true})){
       setT(p=>({...p, intake_event_ids: intakeIds}));
+      return;
+    }
+    // ★★ 권한에 막히는 것은 «오류» 가 아니라 «0행» 이다 — 오늘 고친 다른 자리와 같은 셈.
+    //   여기서 조용히 넘기면 **별이 켜진 화면과 실제 값이 갈린 채로 문안을 보내게 된다.**
+    const done = (hit||[]).length;
+    if(!done){
+      setT(p=>({...p, intake_event_ids: intakeIds}));
+      toast('접수 사유 표시를 저장하지 못했습니다 — 권한이 없는 것 같습니다.','warn');
+      return;
+    }
+    if(done < ids.length){
+      toast('이 티켓에는 적용했지만 묶음의 나머지 '+(ids.length-done)+'건에는 적용되지 않았습니다.\n'
+          + '그 티켓들에서 직접 켜 주세요.','warn');
     }
   };
   // ★ 넣은 글이 한눈에 보이게 칸을 늘린다 — 글이 바뀔 때마다 다시 잰다.
@@ -27732,8 +27920,12 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
     // ★ 반대로 «값 변경» 은 그 티켓의 일이라 그 티켓에 남긴다(아래).
     const mainId = t.main_ticket_id || t.id;
     // ★ 사진만 붙인 줄도 남긴다(제니 2026-09-03) — 글이 없어도 사진이 있으면 사건이다.
+    // ★★★ 2026-09-16 제니 — **«적은 그 티켓» 에 남긴다**(전에는 늘 메인이었다).
+    //   이력 줄에 #번호가 찍히는데, 서브에서 적어도 메인 번호로만 찍혀
+    //   «누가 어디서 남겼는지» 가 사라졌다. 읽는 쪽은 이미 묶음 전체를 합쳐 보므로
+    //   (상세의 이력 조회가 `.in('ticket_id', 묶음 전부)`) 보이는 내용은 그대로다.
     if(draft.trim() || photos.length){
-      evs.push({ticket_id:mainId, side, action:ACTION_NOTE, actor:currentUserEmail,
+      evs.push({ticket_id:ticketId, side, action:ACTION_NOTE, actor:currentUserEmail,
         note: draft.trim() || null,        // 사진만 남긴 줄은 null (빈 문자열이 아니라)
         stage_after: st, direction_after: edit.direction||null,
         // 사진은 이미 올라가 있고 여기서는 주소만 적는다.
@@ -27792,7 +27984,16 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
       if(sibs.length && grpNames.length){
         grpRow.updated_by = currentUserEmail;
         const {error:e3} = await sb.from('cs_tickets').update(grpRow).in('id', sibs);
-        if(e3) console.error('[묶음 적용] 실패:', e3);
+        // ★★★ 여기가 조용하면 **이력이 거짓말을 한다** — 바로 아래에서 「단계·리체크는
+        //   묶음 N건에 함께 적용」이라고 적기 때문이다(2026-09-16). 형제는 옛 값으로
+        //   남았는데 기록만 «함께 갔다» 고 말하면, 나중에 목록에서 갈라진 것을 보고도
+        //   까닭을 못 찾는다.
+        if(e3){
+          console.error('[묶음 적용] 실패:', e3);
+          toast('⚠ 이 티켓은 저장됐지만 묶음의 나머지 '+sibs.length+'건에는 적용되지 않았습니다.\n'
+              + grpNames.join('·')+'를 그 티켓들에서 직접 바꿔 주세요.\n'
+              + (e3.message||''), 'warn');
+        }
       }
       // ★ 바뀐 것을 «줄바꿈» 으로 모아 한 사건에 담는다(제니) — 가운뎃점으로 이으면
       //   항목 구분이 안 된다. 이력 화면이 pre-wrap 이라 줄바꿈이 그대로 보인다.
@@ -27807,7 +28008,10 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
     // ★ 이력 기록이 실패해도 저장을 되돌리지 않는다(환불 이력에서 정한 원칙 그대로).
     if(evs.length){
       const {error:e2} = await sb.from('cs_ticket_events').insert(evs);
-      if(e2) console.error('[티켓 이력] 실패:', e2);
+      // ★ 실패했으면 **적은 글을 비우지 않는다** — 비우면 다시 남길 것이 사라진다.
+      if(csEventFail(e2, '티켓은 저장됐지만 이력이 남지 않았습니다.')){
+        setBusy(false); await load(); return false;
+      }
     }
     setDraft(''); setPhotos([]);
     setBusy(false);
@@ -27973,6 +28177,7 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
     <div className="section" style={{contain:'inline-size'}}>
       {handoff && (
         <CsRefundHandoff t={t} currentUserEmail={currentUserEmail}
+          canLink={csCanLinkRefund(fieldRules, role)}
           onClose={()=>setHandoff(false)}
           onDone={(rid)=>{ setHandoff(false);
             toast('환불 #'+rid+' 로 넘겼습니다.','ok'); load(); }}/>
@@ -28274,7 +28479,9 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
                  눌러야 할 버튼이 둘이면 하나는 반드시 잊힌다.
                ★ 저장이 막히면(필수 칸이 비었다) 창을 열지 않는다 — saveAll 이 이미
                  무엇이 모자란지 말해 준 뒤다. */
-            <button disabled={busy}
+            <button disabled={busy || !csCanLinkRefund(fieldRules, role)}
+              title={csCanLinkRefund(fieldRules, role) ? undefined
+                : '환불 번호를 티켓에 연결할 권한이 없습니다 — 관리자에게 «환불 건 연결» 칸 권한을 함께 열어 달라고 하세요'}
               onClick={async ()=>{
                 if(dirty){ const ok = await saveAll(t.stage); if(!ok) return; }
                 setHandoff(true);
@@ -29484,10 +29691,17 @@ function csIntakeReason(t, events){
   //   거르면 **서브 티켓에서는 고객 이력이 한 줄도 안 잡힌다** — 별을 켜 놓고도
   //   접수 사유가 비어 나갔다(제니 제보 2026-09-04). 묶음의 메인 id 도 함께 본다.
   //   ★ 같은 사건을 겪는 묶음이라 메인에 적힌 고객의 말이 서브의 접수 사유이기도 하다.
-  const mine = (events||[]).filter(e=> e.side==='고객' && e.note &&
-    (e.ticket_id==null || e.ticket_id===t.id || e.ticket_id===t.main_ticket_id));
+  // ★★ 2026-09-16 — 이력이 «적은 그 티켓» 에 쌓이면서 «나 또는 메인» 으로는 모자란다.
+  //   형제에 적힌 고객의 말도 이 티켓의 접수 사유다 → **같은 묶음인가**로 본다.
+  //   ★ `_gk` 는 이력을 읽어 오는 자리에서 적어 둔 «그 이력이 속한 묶음» 이다.
+  //     없으면(옛 길로 들어온 줄) 예전 판정으로 물러선다.
+  const key = csGroupKey(t);
+  const mine = (events||[]).filter(e=> e.side==='고객' && e.note && (e.ticket_id==null ||
+    (e._gk != null ? e._gk===key : (e.ticket_id===t.id || e.ticket_id===t.main_ticket_id))));
   if(!mine.length) return '';
-  const picked = Array.isArray(t.intake_event_ids) ? t.intake_event_ids : [];
+  // ★ `_intake` 는 «묶음의 별을 합친 것»(접수 문안 화면이 얹어 준다). 없으면 제 값을 본다.
+  const picked = Array.isArray(t._intake) ? t._intake
+               : (Array.isArray(t.intake_event_ids) ? t.intake_event_ids : []);
   const on = mine.filter(e=>picked.indexOf(e.id)>=0);
   const use = on.length ? on : [mine[0]];
   return use.map(e=>String(e.note).trim()).join('\n');
@@ -29697,15 +29911,37 @@ function CsSupplierDraftPage({ids, currentUserEmail, onBack, goTicket}){
     // ★ 「접수 사유」는 고객이 한 말이라 이력에서 가져온다 — 여기서 한 번에 읽는다
     //   (표를 그릴 때마다 티켓별로 물으면 건수만큼 조회가 늘어난다).
     if(list.length){
-      // ★ 묶음이면 이력이 «메인» 에 쌓인다 — 메인 번호도 함께 물어야 서브 티켓의
-      //   접수 사유가 빈 채로 나가지 않는다.
-      const ids2 = Array.from(new Set(
-        list.map(t=>t.id).concat(list.map(t=>t.main_ticket_id).filter(Boolean))));
+      // ★★★ 2026-09-16 — 이력이 «적은 그 티켓» 에 쌓이면서, «나 또는 메인» 두 번호로는
+      //   모자란다(형제에 적힌 고객의 말도 이 티켓의 접수 사유다).
+      //   → **묶음 전부를 먼저 물어** 번호를 모으고, 읽어 온 이력 줄마다
+      //     «어느 묶음인지»(_gk)를 적어 둔다. 그러면 읽는 함수들은 지도를 들고
+      //     다닐 필요가 없다(csIntakeReason 주석 참고).
+      const mains = Array.from(new Set(list.map(t=>csGroupKey(t)).filter(Boolean)));
+      const {data:fam} = await sb.from('cs_tickets').select('id,main_ticket_id,intake_event_ids')
+        .or('id.in.('+mains.join(',')+'),main_ticket_id.in.('+mains.join(',')+')');
+      // ★ 묶음 조회가 실패해도 화면은 돈다 — 그때는 지금 목록만으로 지도를 만든다.
+      const gk = csGroupLookup((fam && fam.length) ? fam : list);
+      const ids2 = Array.from(new Set(((fam && fam.length) ? fam : list).map(t=>t.id)
+        .concat(list.map(t=>t.id))));
       const {data:ev} = await sb.from('cs_ticket_events')
         .select('id,ticket_id,side,note')
         .in('ticket_id', ids2).eq('side','고객')
         .order('created_at',{ascending:true});
-      setEvents(ev||[]);
+      setEvents((ev||[]).map(e=>({...e, _gk: gk(e.ticket_id)})));
+      // ★★★ 별(접수 사유로 쓸 줄)도 «묶음 하나» 로 본다(제니 2026-09-16 제보:
+      //   「묶음 중 한 건에서만 별을 켰더니 접수 사유가 서로 다르게 들어간다」).
+      //   앞으로는 별을 켤 때 묶음 전부에 저장되지만, **이미 갈려 있는 옛 티켓**도
+      //   있으므로 읽는 쪽에서 묶음의 별을 **합쳐서** 본다.
+      //   ★★ 여기가 마지막 방어선이다 — 한 통의 메일에 함께 담기는 값이라,
+      //     갈린 채로 지나가면 같은 묶음 두 줄이 서로 다른 사유를 달고 공급사에 나간다.
+      const union = {};
+      ((fam && fam.length) ? fam : list).forEach(r=>{
+        const k = csGroupKey(r);
+        const bag = union[k] || (union[k] = {});
+        (Array.isArray(r.intake_event_ids) ? r.intake_event_ids : []).forEach(id=>{ bag[id]=1; });
+      });
+      setRows(list.map(t=>({...t,
+        _intake: Object.keys(union[csGroupKey(t)] || {}).map(Number)})));
       // ★★ 사진은 «따로» 읽는다(제니 2026-09-08: 「사진 첨부가 있는 경우 알려줘야 한다 ·
       //   내용 하단에 티켓에 첨부된 사진을 그대로 보여 주자」).
       //   ★ 위 조회에 얹지 않는 이유: 저것은 «고객이 한 말»(side='고객')만 골라 접수
@@ -29723,7 +29959,10 @@ function CsSupplierDraftPage({ids, currentUserEmail, onBack, goTicket}){
         list.forEach(p=>{
           const url = typeof p==='string' ? p : (p && p.url);
           if(!url) return;
-          (pm[r.ticket_id] = pm[r.ticket_id] || []).push({url, name:(p&&p.name)||null});
+          // ★ 사진도 «묶음» 으로 모은다(2026-09-16) — 이력이 형제에 붙어 있어도
+          //   같은 사건의 사진이라 함께 보여 준다.
+          const k = gk(r.ticket_id);
+          (pm[k] = pm[k] || []).push({url, name:(p&&p.name)||null});
         });
       });
       setPhotoMap(pm);
@@ -29747,27 +29986,51 @@ function CsSupplierDraftPage({ids, currentUserEmail, onBack, goTicket}){
     // ★ 이미 앞선 단계로 간 건은 되돌리지 않는다 — «티켓 등록» 인 것만 옮긴다.
     const move  = list.filter(t=>t.stage==='received').map(t=>t.id);
     const first = list.filter(t=>!t.supplier_sent_at).map(t=>t.id);
+    // ★★★ 목록의 일괄 수정과 «같은 셈» 이다(2026-09-16) — 행 권한에 막히는 것은
+    //   «오류» 가 아니라 «0행» 이라, error 만 보면 한 건도 안 옮겨진 것이 성공으로 읽힌다.
+    //   여기서는 더 나쁘다: 상태가 안 옮겨졌는데 **보낸 시각과 이력은 남아**,
+    //   「공급사에 보냈다」고 기록된 채로 목록에서는 «공급사 미접수» 에 그대로 앉아 있게 된다.
+    let moved = move;
     if(move.length){
-      const {error} = await sb.from('cs_tickets')
-        .update({stage:'awaiting', updated_by:currentUserEmail}).in('id', move);
+      const {data:hit, error} = await sb.from('cs_tickets')
+        .update({stage:'awaiting', updated_by:currentUserEmail}).in('id', move).select('id');
       if(sbFail('상태 바꾸기', error, {write:true})){ setBusy(false); return; }
+      moved = (hit||[]).map(r=>r.id);
+      if(!moved.length){
+        toast('한 건도 «진행중» 으로 옮기지 못했습니다 — 권한이 없는 것 같습니다.\n'
+            + '관리자에게 알려 주세요. (보낸 시각도 찍지 않았습니다)','warn');
+        setBusy(false); return;
+      }
+      if(moved.length < move.length){
+        toast('옮겨야 할 '+move.length+'건 가운데 '+moved.length+'건만 «진행중» 이 됐습니다.\n'
+            + '나머지는 목록에서 확인해 주세요.','warn');
+      }
     }
     // ★ 보낸 시각은 «비어 있는 건» 에만 찍는다 — 다시 보내도 「며칠째 답이 없나」가
     //   0일로 되감기지 않는다.
     if(first.length){
-      const {error:e0} = await sb.from('cs_tickets')
-        .update({supplier_sent_at: now}).in('id', first);
-      if(e0) console.error('[공급사 접수 시각] 실패:', e0);
+      const {data:h0, error:e0} = await sb.from('cs_tickets')
+        .update({supplier_sent_at: now}).in('id', first).select('id');
+      // ★★ 이 시각이 곧 「회신 대기 · 4일째 이상」의 근거다 — 안 찍히면 그 카드가
+      //   영영 0 으로 남는다(읽는 곳만 있고 쓰는 곳이 없는 칸은 조용히 거짓말을 한다).
+      if(e0 || !(h0||[]).length){
+        console.error('[공급사 접수 시각] 실패:', e0);
+        toast('⚠ 상태는 «진행중» 으로 옮겼지만 «공급사에 보낸 시각» 을 못 남겼습니다.\n'
+            + '「회신 대기 · N일째」가 이 건들에는 세어지지 않습니다.\n'
+            + ((e0 && e0.message) || ''),'warn');
+      }
     }
+    // ★ 이력도 «실제로 옮겨진 것» 을 기준으로 적는다 — 안 옮겨진 티켓에
+    //   「상태 : 티켓 등록 -> 진행중」이라고 남으면 이력이 사실과 다른 말을 한다.
     const evs = list.map(t=>({
       ticket_id:t.id, side:'원룸만들기', action:'수정', actor:currentUserEmail,
       note:'공급사 접수 · '+csStamp(now)
-        + (move.indexOf(t.id)>=0 ? '\n상태 : 티켓 등록 -> 진행중' : '')
+        + (moved.indexOf(t.id)>=0 ? '\n상태 : 티켓 등록 -> 진행중' : '')
         + '\n(접수 문안 화면에서 '+list.length+'건 함께)',
-      stage_after: move.indexOf(t.id)>=0 ? 'awaiting' : null,
+      stage_after: moved.indexOf(t.id)>=0 ? 'awaiting' : null,
     }));
     const {error:e2} = await sb.from('cs_ticket_events').insert(evs);
-    if(e2) console.error('[티켓 이력] 실패:', e2);
+    csEventFail(e2, '접수 처리는 됐지만(상태·보낸 시각) 이력이 남지 않았습니다.');
     await load();
     setBusy(false);
     toast(list.length+'건을 접수 처리했습니다.','ok');
@@ -29801,8 +30064,9 @@ function CsSupplierDraft({rows, events, photoMap, supMap, busy, onSent, onBack, 
   //   티켓마다 «제 사진 + 메인의 사진» 을 본다.
   //   ★★ 그러면 한 묶음의 형제들이 같은 사진을 저마다 들고 서게 되는데, 같은 사진이
   //     세 번 보이면 사람은 그것을 **«세 장» 으로 읽는다.** 주소로 한 번만 세운다.
-  const photosOf = (t)=> (photoMap&&photoMap[t.id]||[])
-    .concat(t.main_ticket_id ? ((photoMap&&photoMap[t.main_ticket_id])||[]) : []);
+  // ★ 묶음 열쇠 하나로 찾는다(2026-09-16) — 전에는 «나 + 메인» 둘을 이어 붙였는데,
+  //   이력이 형제에도 쌓이면서 그 둘로는 모자라게 됐다.
+  const photosOf = (t)=> (photoMap && photoMap[csGroupKey(t)]) || [];
   const photoBoxes = useMemo(()=>{
     const seen = {}; const out = [];
     (cur?cur.list:[]).forEach(t=>{
