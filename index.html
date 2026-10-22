@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!-- v20261022g_costs_toolcol_all -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — ↑ ↓ × 한 줄을 전부에**(제니: 「이게 들어가는 다른 부분도 다 동일하게 · 기능평가 탭에도」). 22d 의 비용표 전용 폭(136px · nowrap)을 공통 `.tcc-th-tool`·`.tcc-td-tool` 로 올려 기능 평가 표도 같게. 가정값 목록의 ↑ ↓ × 도 같은 묶음·같은 모양(× = tcc-mini-del)으로. 비용표 ↑↓ 에 title(위로·아래로). 화면만 · SQL 없음. ★ dev 전용. -->
+<!-- v20261022f_costs_report -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — «요약 · 인쇄» 탭**(10-16 검토 5번 뒷부분 · 제니: 프로토타입 없음 · 화면과 인쇄 둘 다). 결론 다음 탭. 한 장에: 선택한 안(계약·이력의 결정)·가성비 최고 · 비교 한눈에(총비용·월 환산·1회성·기능 총점·판정 · 탈락/약정/회수 예정/미채점 표시) · 월별 누적 비용 차트 · 비용 항목(조건·견적 근거 표시) · 기능 평가 · 계약 일정 · AI 의견(날짜) · 최근 운영 기록 5. [인쇄 · PDF 저장] = 새 창에 이 판만 옮겨 data-theme="light" 로 인쇄(사이드바·다크 바탕 안 나옴). ★ 판정 규칙을 `tccJudge`·`tccRows` 한 곳으로 뺐다 — 결론 탭과 요약이 같은 것을 읽는다. 헤드리스 PDF 로 확인(A4 2쪽). 화면만 · SQL 없음. ★ dev 전용. -->
+<!-- v20261022e_costs_store_v2 -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — 저장 구조를 프로젝트마다 한 줄로**(10-16 검토 5번 앞부분 · 제니 «지금 바로 해도 돼»). 예전엔 모든 프로젝트가 cost_store 한 줄(`toolcost:team:v1`)이라 다른 프로젝트를 고쳐도 «저장 보류» 가 떴고 저장마다 전부를 읽고 썼다. 이제 `toolcost:p:<id>` 줄마다 {rev, sort, updatedAt, updatedBy, project} + 표시 줄 `toolcost:meta:v2`. ①처음 열 때 옛 줄을 그대로 옮긴다(옛 줄은 지우지 않는다 — 백업) ②바뀐 프로젝트만 쓰고 충돌은 «내가 고친 프로젝트» 만 본다(남이 다른 프로젝트를 고쳐도 내 저장은 안 막힌다 → 알림만 «다른 사람이 프로젝트 N개를 수정») ③30초 확인은 updated_at 만 읽는다 ④쓰기 먼저·지우기 다음(끊겨도 «남는» 쪽) ⑤옮긴 «뒤» 새로고침 안 한 옛 화면이 옛 줄에 저장하면 «옛 화면 저장분» 띠 — 가져오기(백업 바꾸기 확인 거침)·내려받기·버리기 ⑥사이드바 미리 읽기도 v2. ★ dev 는 10-22 에 옮겼다(2 프로젝트 · 칸별 동일 확인 · 옮기기 전 줄은 scratchpad 백업). 두 화면 동시 편집 시험 6단계 통과(시험 프로젝트 만들고 지움). 새 표·칸 없음 → SQL·마스킹 변화 없음. ★ 운영 승격 날: 승격 직후 열린 옛 탭이 있으면 ⑤가 잡는다. ★ dev 전용. -->
+<!-- v20261022d_costs_toolcol -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 비용표 항목 오른쪽 ↑ ↓ × 가 두 줄로 나뉘던 것 → 한 줄(제니). 칸 폭 96→136(잰 값: 단추 29+29+38«삭제»+간격 9+여백 24=129) · nowrap. 화면만 · SQL 없음. ★ dev 전용. -->
+<!-- v20261022c_costs_quotes -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — 견적 근거·운영 기록 작성자**(10-16 검토 4번). 비용표 칸마다 [+ 조건·근거] 판에 «견적 근거»: 견적서 링크(http(s) 만 «링크 열기») · 견적일 · **견적서 파일 첨부**(새 비공개 버킷 `cost-quotes` · 경로는 «프로젝트id/무작위id.확장자» · 원래 이름은 프로젝트 JSON 의 `costItems[].quotes[serviceId]` · 열 때 2분 서명 주소 · 20MB · 칸 [×] 두 번 누르면 저장소에서 지우고 목록에서 뺌). 항목·프로젝트를 지워도 파일은 남긴다(회차·복제본이 가리킬 수 있어서). 운영 기록에 작성자(로그인 계정 `by`) — 옛 기록은 작성자 없음. AI 프롬프트에 견적일. ★ SQL 있음: `sql/cost_quote_files.sql`(백업 `99a1e35` · dev 적용·검사 통과 run 39710250550) — **운영 승격 때 SQL 먼저**(없으면 올리기가 실패). 새 표 없음 → 마스킹 규칙 변화 없음. ★ dev 전용. -->
+<!-- v20261022b_costs_terms -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — 견적 조건·월별 흐름**(10-16 검토 3번 · 제니가 고른 넷). 비용표 칸마다 [+ 조건]: 부가세 별도(+10% · 모든 안을 부가세 포함으로 맞춤) · 할인 %·처음 N개월 · 과금 시작 N개월차(단계 도입) · 연 인상률(과금 시작부터 12개월마다). 비교 대상마다 «약정(최소 이용 기간)» — 비교 기간보다 길면 약정 끝까지 낸 돈을 총비용에 넣고 «약정 N개월까지 포함» 표시. 비용표 아래 «월별 누적 비용» 차트(SweepChart 재사용 · currentX=null 이면 «지금» 선 없음). ★ 계산 변화 하나: 연 요금을 «실제로 내는 달»(시작 달+12개월마다)에 통째로 센다 — 예전엔 개월/12 로 나눠 18개월이면 1.5회. 비교 기간이 12의 배수면 예전과 같다. 조건이 없으면 예전과 같은 값(dev 프로젝트 12개월 총비용 그대로 확인). «월 환산» 은 정가(할인·인상 전, 부가세 별도분 포함). AI 프롬프트·CSV 에 조건·약정 글로 들어감. 겸해 결론 탭 차트 «지금» 글자가 끝에서 잘리던 것. 화면만 · SQL 없음(조건은 프로젝트 JSON 안 `costItems[].terms`·`services[].commitMonths`). ★ dev 전용. -->
+<!-- v20261022a_costs_judgement -->
+<!-- (2026-10-22) [dev→prod 이식] 💰 **비용 비교 도구 — 판단 손질**(10-16 검토 2번 · 제니 결정). ①결론 탭 슬라이더는 «저장 안 되는 임시값»(예전엔 실제 가정값을 고쳐 저장했다) — 움직이면 카드가 임시값으로 다시 계산되고 «임시값으로 보는 중 · 저장되지 않습니다 [원래 값으로]» 띠 · ②기능 점수 빈칸 = 미채점 → 총점에서 빠진다(매긴 항목만으로 100점 환산 · 카드·표에 «미채점 N개») · 새 항목·새 후보는 빈칸으로 시작(예전엔 3점) · 켜진 점수를 한 번 더 누르면 빈칸 · 기존에 저장된 점수는 그대로 · ③«탈락 · 종료» 안은 비용 최저·기능 최고·가성비 판정에서 뺀다(카드는 흐리게 남김) · ④가성비 최고 = «기능 X점 이상인 안 중 총비용 최저»(X 는 프로젝트마다 · 기본 60 · 결론 탭 맨 위 칸). 화면만 · SQL 없음. ★ dev 전용. -->
+<!-- v20261021b_costs_save_guard -->
+<!-- (2026-10-21) [dev→prod 이식] 💰 **비용 비교 도구 — 저장 안전장치**(10-16 검토 1번 · 제니 「비용 비교 개선 하자」). ①처음 불러오기에 실패하면 «샘플 프로젝트» 대신 오류 + [다시 시도](예전엔 읽기 실패를 «저장된 것 없음» 으로 삼켜 샘플을 띄웠고, 거기서 고치면 샘플이 실자료 자리에 저장될 수 있었다) · ②저장 직전 확인 읽기가 실패하면 저장하지 않는다(예전엔 충돌 검사를 건너뛰고 썼다) · ③[최신 내용 불러오기]·[새로고침] 실패 시 화면 유지 · ④백업 불러오기는 «무엇이 무엇으로 바뀌는지» 띠 + 두 번 누르기(지금 내용 내려받기 단추 함께) · ⑤가정값·비교 대상·비용 항목·기능 항목·운영 기록 삭제를 두 번 누르기(회차 삭제와 같은 ConfirmButton). 계산·저장 형식은 안 바뀐다. 화면만 · SQL 없음. ★ dev 전용. -->
 <!-- v20261021a_tk_list_my_view -->
 <!-- (2026-10-21) [dev→prod 이식] 🎫 **티켓 목록 글자 크기·행 간격을 계정마다 조절**(제니: 「로그인한 계정마다 각자 원하는 형태로」). [⚙ 보기 설정] 패널 맨 위에 «내 화면» — 글자 크기 13·14·15(기본)·16·17 · 행 간격 촘촘(10)·좁게(14)·기본(18)·넓게(24) · 누르면 바로 바뀐다. 저장은 **계정별 DB**(새 표 `console_user_prefs` · RLS 로 제 줄만 · sql/console_user_prefs.sql 백업 저장소) · localStorage 는 첫 그림용 사본(키에 이메일). ★ [⚙ 보기 설정] 버튼을 이제 **누구나** 본다 — 그 아래 열 구성 부분은 여전히 master 만. ★ 칸 안 작은 글자(주문번호·날짜·연락처·알약·리체크)는 «본문보다 n px 작게»(csTkFs · --tk-fs)로 바꿔 함께 커진다 — 기본 15 에선 전과 같은 크기. 머리글은 그대로. ★ dev 전용. -->
 <!-- v20261020a_tk_list_weight400 -->
@@ -15298,7 +15314,59 @@ const TCC_STORE = {
    ========================================================= */
 
 const STORAGE_KEY = "toolcost:projects:v1";
-const SHARED_KEY = "toolcost:team:v1";
+const SHARED_KEY = "toolcost:team:v1";   // 옛 «한 줄에 전부» — 2026-10-22 부터 읽기만 한다(옮겨 온 뒤 백업으로 남는다)
+
+/* ── 저장 구조 v2 (2026-10-22 · 10-16 검토 5번) ─────────────────────────────
+   예전엔 모든 프로젝트를 cost_store 한 줄(SHARED_KEY)에 담아, 다른 프로젝트를 고쳐도 «충돌» 로 잡혔고
+   저장마다 전부를 읽고 썼다. 이제 프로젝트마다 한 줄이다.
+     · `toolcost:p:<프로젝트id>` = {rev, sort, updatedAt, updatedBy, project}
+     · `toolcost:meta:v2`       = {migratedAt, by} — «v2 로 옮겼다» 는 표시. 이것이 있으면 옛 줄을 다시 옮기지 않는다
+       (없으면 모든 프로젝트를 지운 뒤 다시 열 때 옛 줄이 되살아난다).
+   ★ 옛 SHARED_KEY 줄은 지우지 않는다 — 옮기기 직전 상태 그대로 남는 백업이다(쓰지 않는다).
+   ★ 충돌은 «내가 고친 프로젝트» 만 본다 — 남이 다른 프로젝트를 고쳐도 내 저장은 막히지 않는다.
+   ★ 새 표·새 칸 없음(같은 cost_store · 같은 RLS) → SQL·마스킹 규칙 변화 없음. */
+const TCC_P_PREFIX = "toolcost:p:";
+const TCC_META_KEY = "toolcost:meta:v2";
+const TCC_SHARED_OWNER = "00000000-0000-0000-0000-000000000000";
+
+/* 공유 줄을 전부 읽어 «무엇이 있는가» 로 정리한다. 실패·깨진 JSON 은 던진다(빈 자료로 보고 덮으면 남은 것까지 잃는다). */
+async function tccReadAll(quiet) {
+  const { data, error } = await sb
+    .from("cost_store")
+    .select("store_key,value,updated_at")
+    .eq("scope", "shared")
+    .like("store_key", "toolcost:%");
+  if (error) { if (!quiet) sbFail("비용 비교 자료 조회", error); throw error; }
+  const rows = data || [];
+  const meta = rows.find((r) => r.store_key === TCC_META_KEY) || null;
+  const v1row = rows.find((r) => r.store_key === SHARED_KEY) || null;
+  const prows = rows
+    .filter((r) => r.store_key.indexOf(TCC_P_PREFIX) === 0)
+    .map((r) => {
+      const b = JSON.parse(r.value);
+      return { id: r.store_key.slice(TCC_P_PREFIX.length), at: r.updated_at, ...b };
+    })
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  return {
+    meta: meta ? { ...JSON.parse(meta.value || "{}"), at: meta.updated_at } : null,
+    v1: v1row && v1row.value ? JSON.parse(v1row.value) : null,
+    prows,
+  };
+}
+
+/* ★ 옮긴 «뒤» 에 옛 한 줄이 다시 저장됐는가 — 새로고침 안 한 옛 화면(탭)이 계속 저장한 경우다.
+   v2 는 옛 줄을 안 읽으므로 그 수정이 조용히 사라진다. 그래서 찾아서 알린다(가져올지는 사람이 고른다). */
+function tccStaleV1(all) {
+  if (!all.meta || !all.v1 || !all.v1.updatedAt) return null;
+  const moved = Date.parse(all.meta.migratedAt || all.meta.at || "");
+  const v1At = Date.parse(all.v1.updatedAt);
+  if (!isFinite(moved) || !isFinite(v1At) || v1At <= moved) return null;
+  return {
+    updatedAt: all.v1.updatedAt,
+    updatedBy: all.v1.updatedBy || "",
+    projects: Array.isArray(all.v1.projects) ? all.v1.projects : [],
+  };
+}
 
 /* 몇 분 전인지 사람이 읽기 좋게 */
 function agoText(iso) {
@@ -15385,6 +15453,7 @@ const VIEWS = [
   ["cost", "비용표"],
   ["feature", "기능 평가"],
   ["result", "결론"],
+  ["report", "요약 · 인쇄"],
   ["history", "계약 · 이력"],
   ["setup", "설정"],
 ];
@@ -15552,43 +15621,141 @@ function resolveVars(vars) {
   return list;   // 원래 순서 그대로 (화면이 이 순서로 그린다)
 }
 
+/* 견적 조건(2026-10-22 · 10-16 검토 3번) — 칸(비용 항목 × 비교 대상)마다 붙는다.
+   item.terms[serviceId] = { vat, discPct, discMonths, start, rise }
+   · vat        견적이 «부가세 별도» 면 true → 10% 를 더해 모든 안을 부가세 포함으로 맞춘다
+   · discPct/discMonths  과금 시작부터 처음 N개월 동안 몇 % 할인
+   · start      몇 개월차부터 과금하나(단계 도입) — 1 이 기본
+   · rise       연 인상률(%) — 과금 시작부터 12개월마다 오른다
+   비어 있으면 예전과 같은 계산이 된다. 회수 예정에는 조건을 안 붙인다. */
+function itemTerms(item, serviceId) {
+  const t = ((item && item.terms) || {})[serviceId] || {};
+  const n = (v) => (isFinite(Number(v)) ? Number(v) : 0);
+  return {
+    vat: !!t.vat,
+    discPct: Math.min(100, Math.max(0, n(t.discPct))),
+    discMonths: Math.max(0, Math.floor(n(t.discMonths))),
+    start: Math.max(1, Math.floor(n(t.start)) || 1),
+    rise: n(t.rise),
+  };
+}
+
+function termsActive(t) {
+  return t.vat || (t.discPct > 0 && t.discMonths > 0) || t.start > 1 || t.rise !== 0;
+}
+
+/* 화면·AI 프롬프트·CSV 가 같은 말을 쓰게 한 곳에서 만든다. */
+function termsText(t, cycle) {
+  const out = [];
+  if (t.vat) out.push("부가세 별도(+10%)");
+  if (t.discPct > 0 && t.discMonths > 0) {
+    out.push(cycle === "once" ? t.discPct + "% 할인" : "처음 " + t.discMonths + "개월 " + t.discPct + "% 할인");
+  }
+  if (t.start > 1) out.push(t.start + "개월차부터");
+  if (t.rise !== 0 && cycle !== "once") out.push("연 " + (t.rise > 0 ? "+" : "") + t.rise + "%");
+  return out.join(" · ");
+}
+
+/* 약정(최소 이용 기간) — 비교 대상마다. 비교 기간보다 길면 약정 끝까지 내야 하므로 그만큼 더한다. */
+function serviceCommit(svc) {
+  const c = Math.floor(Number(svc && svc.commitMonths) || 0);
+  return c > 0 ? c : 0;
+}
+
 function computeService(project, serviceId) {
   const months = Math.max(1, Number(project.horizonMonths) || 36);
   const vars = resolveVars(project.vars);   // 식으로 둔 가정값을 먼저 숫자로 푼다
-  let monthly = 0;
+  const svc = project.services.find((s) => s.id === serviceId);
+  const commit = serviceCommit(svc);
+  // 약정이 비교 기간보다 길면 약정 끝까지 낸 돈을 센다(중간에 못 끊으므로).
+  const span = Math.max(months, commit);
+  let monthly = 0;   // 정가 기준(할인 전·인상 전 · 부가세 포함) — «월 환산» 표시에 쓴다
   let yearly = 0;
   let once = 0;
   let deposit = 0;   // 회수 예정 — 돌려받는 돈이라 총비용에 넣지 않는다
+  let total = 0;
+  const flow = new Array(months).fill(0);   // 비교 기간 안의 달별 지출(월별 흐름 차트)
   const errors = [];
+
+  const pay = (m, amt) => {
+    total += amt;
+    if (m <= months) flow[m - 1] += amt;
+  };
 
   for (const item of project.costItems) {
     const r = evalCell(item.values[serviceId], vars);
     if (r.error) errors.push(item.label + ": " + r.error);
-    if (item.cycle === "monthly") monthly += r.value;
-    else if (item.cycle === "yearly") yearly += r.value;
-    else if (item.cycle === "deposit") deposit += r.value;
-    else once += r.value;
+    if (item.cycle === "deposit") { deposit += r.value; continue; }
+    const t = itemTerms(item, serviceId);
+    const base = r.value * (t.vat ? 1.1 : 1);
+    // 과금 시작부터 k 개월째 금액 — 인상은 12개월마다, 할인은 처음 N개월.
+    const at = (k) => {
+      let a = base * Math.pow(1 + t.rise / 100, Math.floor(k / 12));
+      if (k < t.discMonths) a *= 1 - t.discPct / 100;
+      return a;
+    };
+    if (item.cycle === "monthly") {
+      monthly += base;
+      for (let m = t.start; m <= span; m++) pay(m, at(m - t.start));
+    } else if (item.cycle === "yearly") {
+      // ★ 연 요금은 실제로 내는 달(시작 달 + 12개월마다)에 통째로 센다.
+      //   예전엔 개월/12 로 나눠 18개월이면 1.5회로 셌다 — 실제로는 2회 낸다.
+      //   비교 기간이 12의 배수면 예전과 같은 값이다.
+      yearly += base;
+      for (let m = t.start; m <= span; m += 12) pay(m, at(m - t.start));
+    } else if (t.start <= span) {
+      const a = base * (t.discPct > 0 && t.discMonths > 0 ? 1 - t.discPct / 100 : 1);
+      once += a;
+      pay(t.start, a);
+    }
   }
 
   const perMonth = monthly + yearly / 12;
   // ★ total 에 deposit 을 더하지 않는 것이 이 함수의 핵심 약속이다.
   //   비교(총비용·1점당 비용·시뮬레이션)는 전부 total 을 쓰므로, 여기서 한 번 빼면
   //   화면 어디서도 회수 예정 금액이 지출로 섞이지 않는다.
-  const total = monthly * months + (yearly * months) / 12 + once;
-  return { monthly, yearly, once, deposit, perMonth, total, months, errors };
+  return {
+    monthly, yearly, once, deposit, perMonth, total, months, errors, flow,
+    commit, commitOver: commit > months,
+  };
 }
 
+/* 점수를 안 매긴 칸(빈칸)은 «미채점» 이다 — 0점이 아니다(2026-10-22 제니 결정).
+   ★ Number(null)·Number("") 는 0 이 되므로 숫자로 바꾸기 «전에» 빈칸을 가른다. */
+function isScoreUnset(v) {
+  return v === undefined || v === null || v === "" || !isFinite(Number(v));
+}
+
+/* 매긴 항목만으로 100점 환산한다. 미채점 항목은 그 중요도째 분모에서 빠진다.
+   rated 0 이면 아직 비교할 점수가 없다는 뜻 — 화면은 «미채점» 으로 보여 준다. */
 function computeScore(project, serviceId) {
   let weightSum = 0;
   let got = 0;
+  let rated = 0;
+  let unrated = 0;
   for (const f of project.featureItems) {
     const w = Number(f.weight) || 0;
-    const s = Number(f.scores[serviceId]);
+    const raw = (f.scores || {})[serviceId];
+    if (isScoreUnset(raw)) { unrated++; continue; }
+    rated++;
     weightSum += w;
-    got += w * (isFinite(s) ? s : 0);
+    got += w * Number(raw);
   }
-  if (weightSum === 0) return { score: 0, weightSum: 0 };
-  return { score: (got / (weightSum * 5)) * 100, weightSum };
+  if (weightSum === 0) return { score: 0, weightSum: 0, rated, unrated };
+  return { score: (got / (weightSum * 5)) * 100, weightSum, rated, unrated };
+}
+
+/* «탈락 · 종료» 안은 비교 판정(최저·최고·가성비)에서 뺀다. 표와 카드에는 그대로 둔다. */
+function isServiceActive(s) {
+  return !s || s.state !== "dropped";
+}
+
+/* 판정에 쓰는 최솟값·최댓값 — 비교할 안이 하나도 없으면 null(어떤 칸에도 표시를 안 붙인다). */
+function tccMin(list) {
+  return list.length ? Math.min(...list) : null;
+}
+function tccMax(list) {
+  return list.length ? Math.max(...list) : null;
 }
 
 /* ---------- 샘플 프로젝트 ------------------------------- */
@@ -15809,10 +15976,18 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
   const [saveState, setSaveState] = useState("idle");
   const me = currentUserEmail || "";   // 편집자는 로그인 계정이다. 따로 이름을 받지 않는다.
   const [meta, setMeta] = useState(null);
-  const [remoteChanged, setRemoteChanged] = useState(false);
+  const [remoteChanged, setRemoteChanged] = useState(false);   // 내가 고친 프로젝트를 남도 고쳤다 — 저장 보류
+  const [remoteSeen, setRemoteSeen] = useState(null);          // 남이 (다른) 프로젝트를 고쳤다 — 알림만
+  const [staleV1, setStaleV1] = useState(null);                // 옮긴 뒤 옛 화면이 옛 한 줄에 저장한 내용
+  const [loadError, setLoadError] = useState(null);       // 처음 불러오기 실패(샘플 대신 이것을 보인다)
+  const [pendingImport, setPendingImport] = useState(null); // 백업 불러오기 — 바꾸기 전 확인 대기
   const firstLoad = useRef(true);
   const fileRef = useRef(null);
-  const baseRev = useRef(0);
+  // v2 — 프로젝트마다: 내가 마지막으로 본 rev · 마지막으로 저장(또는 불러온) 모양 · 줄의 updated_at
+  const baseRevs = useRef(new Map());
+  const savedBody = useRef(new Map());
+  const seenAt = useRef(new Map());
+  const metaDone = useRef(false);   // `toolcost:meta:v2` 줄이 있는가
   const meRef = useRef("");
 
   useEffect(() => {
@@ -15824,7 +15999,13 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
     let alive = true;
     (async () => {
       meRef.current = currentUserEmail || "";
-      let box = await readStore();
+      const rd = await readStore();
+      if (!alive) return;
+      // ★★ 2026-10-21 — 못 읽었으면 «샘플» 을 띄우지 않는다. 예전엔 읽기 실패를 «저장된 것 없음» 으로
+      //   삼켜 샘플 프로젝트를 보여 줬고, 거기서 무엇이든 고치면 그 샘플이 실데이터 자리에 저장될 수 있었다.
+      //   → 오류 화면 + 다시 시도. 화면에 자료가 없으니 자동 저장도 돌지 않는다.
+      if (!rd.ok) { setLoadError(rd.error); return; }
+      let box = rd.box;
       let moved = null;
       if (!box) {
         // 예전에 '나만 보기'로 저장해 둔 것이 있으면 잃지 않도록 한 번 옮겨 온다.
@@ -15833,7 +16014,12 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
       }
       if (!alive) return;
       applyBox(box, true);
-      if (moved && moved.length) await writeStore(moved, true);
+      // ★ 2026-10-22 — 아직 v2 가 아니면(옛 한 줄 · 옛 개인 저장본) 지금 화면 그대로 프로젝트마다 한 줄로 옮긴다.
+      //   옛 줄은 그대로 남는다. 옮기다 실패하면 화면은 그대로 두고 알린다(다음에 열 때 다시 옮긴다).
+      if (box && !box.v2 && Array.isArray(box.projects) && box.projects.length) {
+        const r = await writeStore(box.projects.map(migrate), true);
+        if (alive && !r.ok) setNotice("저장 구조를 새 방식으로 옮기지 못했습니다. 화면은 그대로이며 다음에 열 때 다시 옮깁니다.");
+      }
     })();
     return () => {
       alive = false;
@@ -15842,16 +16028,31 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
 
   /* 다른 사람이 같은 자료를 고쳤는지 30초마다 확인한다 (master 는 여럿일 수 있다) */
   useEffect(() => {
+    // v2 — 값은 안 읽고 줄마다 updated_at 만 본다(예전엔 30초마다 전체 JSON 을 읽었다).
     const id = setInterval(async () => {
+      if (!metaDone.current) return;   // 아직 옮기기 전이면 볼 것이 없다
       try {
-        const r = await TCC_STORE.get(SHARED_KEY, true);
-        if (r && r.value) {
-          const box = JSON.parse(r.value);
-          if (typeof box.rev === "number" && box.rev !== baseRev.current) {
-            setRemoteChanged(true);
-            setMeta({ updatedAt: box.updatedAt, updatedBy: box.updatedBy });
-          }
-        }
+        const { data, error } = await sb
+          .from("cost_store")
+          .select("store_key,updated_at,updated_by")
+          .eq("scope", "shared")
+          .like("store_key", TCC_P_PREFIX + "%");
+        if (error || !data) return;
+        const t = (x) => (x ? Date.parse(x) : 0);
+        const keys = new Set(data.map((r) => r.store_key));
+        const changed =
+          data.filter((r) => t(r.updated_at) !== t(seenAt.current.get(r.store_key))) ;
+        const gone = [...seenAt.current.keys()].some((k) => !keys.has(k));
+        // ★ v2 에서는 남이 고쳤다고 내 저장이 막히지 않는다(같은 프로젝트를 고쳤을 때만 막힌다 — writeStore).
+        //   그래서 «저장 보류» 띠(remoteChanged)가 아니라 «바뀐 것이 있다» 알림만 띄운다.
+        if (changed.length || gone) {
+          const last = [...changed].sort((a, b) => t(b.updated_at) - t(a.updated_at))[0];
+          setRemoteSeen({
+            count: changed.length + (gone ? 1 : 0),
+            by: last ? last.updated_by || "" : "",
+            at: last ? last.updated_at : "",
+          });
+        } else setRemoteSeen(null);
       } catch (e) {
         /* 조회 실패는 무시하고 다음 주기에 다시 시도 */
       }
@@ -15883,15 +16084,39 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
   }, [projects]);
 
   /* ---------- 저장소 입출력 ---------- */
+  // ★★ 2026-10-21 — «저장된 것이 없다» 와 «읽지 못했다» 를 가른다. 예전엔 둘 다 null 이라
+  //   네트워크·권한 오류에서도 샘플을 띄웠다. 없는 것은 {ok:true, box:null}, 실패는 {ok:false}.
+  //   ★ 깨진 JSON 도 «실패» 다 — 빈 자료로 보고 덮어쓰면 남은 것까지 잃는다.
+  // v2(2026-10-22) — 프로젝트 줄들을 모아 예전과 같은 «box» 모양으로 돌려준다(box.v2 = true).
+  //   아직 옮기기 전이면 옛 한 줄을 그대로(box.v2 없음) 돌려주고, 불러오기 쪽이 옮긴다.
   async function readStore() {
     try {
-      const r = await TCC_STORE.get(SHARED_KEY, true);
-      if (r && r.value) return JSON.parse(r.value);
+      const all = await tccReadAll();
+      if (all.meta || all.prows.length) {
+        let last = null;
+        all.prows.forEach((r) => { if (!last || String(r.updatedAt) > String(last.updatedAt)) last = r; });
+        return {
+          ok: true,
+          box: {
+            v2: true,
+            meta: !!all.meta,
+            staleV1: tccStaleV1(all),
+            projects: all.prows.map((r) => r.project),
+            revs: all.prows.map((r) => r.rev || 0),
+            ats: all.prows.map((r) => r.at),
+            updatedAt: last ? last.updatedAt : "",
+            updatedBy: last ? last.updatedBy : "",
+          },
+        };
+      }
+      return { ok: true, box: all.v1 };
     } catch (e) {
-      /* 아직 저장된 것이 없음 */
+      return { ok: false, error: (e && e.message) || String(e) };
     }
-    return null;
   }
+
+  // 저장 «모양» — 내용 + 차례. 이것이 같으면 그 프로젝트는 안 바뀐 것이라 쓰지 않는다.
+  const bodyOf = (p, i) => i + "|" + JSON.stringify(p);
 
   /* 개인/공유를 나누던 시절의 저장본. 처음 한 번만 읽어 옮겨 온다. */
   async function readLegacyPersonal() {
@@ -15904,28 +16129,87 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
     return null;
   }
 
+  /* v2 저장(2026-10-22) — 바뀐 프로젝트 줄만 쓰고, 화면에서 없어진 프로젝트 줄은 지운다.
+     충돌 판정은 «내가 쓰려는 줄» 만: 내가 본 rev 와 지금 rev 가 다르면(남이 그 프로젝트를 고쳤거나 지웠으면) 보류.
+     force(덮어쓰기·옮기기)면 판정 없이 내 화면 그대로 — 화면에 없는 줄은 지운다(예전 덮어쓰기와 같은 뜻).
+     ★★ 2026-10-21 원칙 그대로 — 확인 읽기가 실패하면 «저장하지 않는다». */
   async function writeStore(projs, force) {
     try {
-      // 남의 수정을 덮어쓰지 않도록 먼저 확인한다
-      let cur = null;
-      try {
-        const r = await TCC_STORE.get(SHARED_KEY, true);
-        if (r && r.value) cur = JSON.parse(r.value);
-      } catch (e) {
-        cur = null;
+      const all = await tccReadAll();
+      const cur = new Map(all.prows.map((r) => [r.id, r]));
+      const now = new Date().toISOString();
+      const by = meRef.current || "계정 미확인";
+      const ups = [];
+      const nextRevs = new Map();
+      let conflict = false;
+
+      projs.forEach((p, i) => {
+        const body = bodyOf(p, i);
+        const c = cur.get(p.id);
+        const b = baseRevs.current.get(p.id);
+        // 내가 안 고친 프로젝트는 쓰지도, 판정하지도 않는다 — 남이 그사이 고쳤어도 내 저장과는 상관없다.
+        // (처음엔 «rev 도 같을 때만» 건너뛰게 짰다가, 남이 고친 프로젝트 때문에 내 다른 프로젝트 저장이 막혔다 · 10-22 시험에서 잡음)
+        if (!force && savedBody.current.get(p.id) === body) return;   // 안 바뀜
+        if (!force) {
+          if (c && b === undefined) conflict = true;                 // 남이 같은 id 로 만들었다
+          else if (c && (c.rev || 0) !== b) conflict = true;         // 남이 그 프로젝트를 고쳤다
+          else if (!c && b !== undefined) conflict = true;           // 남이 그 프로젝트를 지웠다
+        }
+        const rev = (c ? c.rev || 0 : b || 0) + 1;
+        nextRevs.set(p.id, rev);
+        ups.push({
+          store_key: TCC_P_PREFIX + p.id,
+          scope: "shared",
+          owner: TCC_SHARED_OWNER,
+          value: JSON.stringify({ rev, sort: i, updatedAt: now, updatedBy: by, project: p }),
+          updated_at: now,
+          updated_by: by,
+        });
+      });
+
+      const ids = new Set(projs.map((p) => p.id));
+      const dels = [];
+      cur.forEach((c, id) => {
+        if (ids.has(id)) return;
+        if (force) { dels.push(id); return; }
+        const b = baseRevs.current.get(id);
+        if (b === undefined) return;                                   // 남이 새로 만든 것 — 건드리지 않는다
+        if ((c.rev || 0) !== b) conflict = true;                       // 내가 지웠는데 남이 그사이 고쳤다
+        else dels.push(id);
+      });
+
+      if (conflict && !force) return { ok: false, conflict: true };
+
+      if (!metaDone.current || !all.meta) {
+        ups.push({
+          store_key: TCC_META_KEY,
+          scope: "shared",
+          owner: TCC_SHARED_OWNER,
+          value: JSON.stringify({ migratedAt: now, by, from: all.v1 ? SHARED_KEY : "" }),
+          updated_at: now,
+          updated_by: by,
+        });
       }
-      if (!force && cur && typeof cur.rev === "number" && cur.rev !== baseRev.current) {
-        return { ok: false, conflict: true };
+      // ★ 차례: 쓰기 먼저, 지우기 다음 — 중간에 끊겨도 «사라지는» 쪽이 아니라 «남는» 쪽으로 끊긴다.
+      if (ups.length) {
+        const { error } = await sb.from("cost_store").upsert(ups, { onConflict: "store_key,scope,owner" });
+        if (error) { sbFail("비용 비교 자료 저장", error, { write: true }); return { ok: false }; }
       }
-      const next = {
-        rev: (cur && typeof cur.rev === "number" ? cur.rev : baseRev.current) + 1,
-        updatedAt: new Date().toISOString(),
-        updatedBy: meRef.current || "계정 미확인",
-        projects: projs,
-      };
-      await TCC_STORE.set(SHARED_KEY, JSON.stringify(next), true);
-      baseRev.current = next.rev;
-      setMeta({ updatedAt: next.updatedAt, updatedBy: next.updatedBy });
+      if (dels.length) {
+        const { error } = await sb
+          .from("cost_store")
+          .delete()
+          .eq("scope", "shared")
+          .in("store_key", dels.map((id) => TCC_P_PREFIX + id));
+        if (error) { sbFail("비용 비교 자료 삭제", error, { write: true }); return { ok: false }; }
+      }
+
+      metaDone.current = true;
+      nextRevs.forEach((rev, id) => { baseRevs.current.set(id, rev); seenAt.current.set(TCC_P_PREFIX + id, now); });
+      projs.forEach((p, i) => savedBody.current.set(p.id, bodyOf(p, i)));
+      dels.forEach((id) => { baseRevs.current.delete(id); savedBody.current.delete(id); seenAt.current.delete(TCC_P_PREFIX + id); });
+      // 남이 새로 만든(내가 모르는) 줄은 «본 것» 으로 치지 않는다 — 알림이 계속 뜨게 둔다.
+      if (ups.length || dels.length) setMeta({ updatedAt: now, updatedBy: by });
       setRemoteChanged(false);
       return { ok: true };
     } catch (e) {
@@ -15935,9 +16219,22 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
 
   function applyBox(box, isFirst) {
     const list = box && Array.isArray(box.projects) ? box.projects : null;
-    baseRev.current = box && typeof box.rev === "number" ? box.rev : 0;
+    // v2 면 프로젝트마다 본 rev·모양·시각을 새로 적는다. 옛 한 줄이면 비워 둔다(곧 옮기며 채운다).
+    baseRevs.current = new Map();
+    savedBody.current = new Map();
+    seenAt.current = new Map();
+    metaDone.current = !!(box && box.v2 && box.meta);
+    if (box && box.v2) {
+      box.projects.forEach((p, i) => {
+        baseRevs.current.set(p.id, box.revs[i]);
+        savedBody.current.set(p.id, bodyOf(migrate(p), i));
+        seenAt.current.set(TCC_P_PREFIX + p.id, box.ats[i]);
+      });
+    }
     if (box) setMeta({ updatedAt: box.updatedAt, updatedBy: box.updatedBy });
     setRemoteChanged(false);
+    setRemoteSeen(null);
+    setStaleV1(box && box.v2 ? box.staleV1 || null : null);
     if (!list || list.length === 0) {
       const sample = [sampleProject(), reviewProject()];
       if (isFirst) firstLoad.current = true;
@@ -15952,11 +16249,55 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
   }
 
   /* 최신 내용 다시 불러오기 */
+  // ★ 2026-10-21 — 못 읽었으면 지금 화면을 그대로 둔다(예전엔 샘플로 바뀌었다).
   const pullLatest = async () => {
-    const box = await readStore();
+    const rd = await readStore();
+    if (!rd.ok) {
+      setNotice("최신 내용을 불러오지 못했습니다. 지금 화면은 그대로입니다. 잠시 뒤 다시 눌러주세요. (" + rd.error + ")");
+      return;
+    }
     firstLoad.current = true;
-    applyBox(box, true);
+    applyBox(rd.box, true);
     setSaveState("idle");
+  };
+
+  /* 처음 불러오기에 실패했을 때 — 다시 시도 */
+  const retryLoad = async () => {
+    setLoadError(null);
+    const rd = await readStore();
+    if (!rd.ok) { setLoadError(rd.error); return; }
+    firstLoad.current = true;
+    applyBox(rd.box, true);
+  };
+
+  /* 옛 화면 저장분을 «봤다» 고 적는다 — 표시 줄(meta)의 시각을 지금으로. 옛 줄 자체는 그대로 둔다(백업).
+     가져오든 버리든 이걸 해야 다음에 열 때 같은 알림이 또 안 뜬다. */
+  const ackStaleV1 = async () => {
+    const now = new Date().toISOString();
+    const by = meRef.current || "계정 미확인";
+    const { error } = await sb.from("cost_store").upsert(
+      {
+        store_key: TCC_META_KEY,
+        scope: "shared",
+        owner: TCC_SHARED_OWNER,
+        value: JSON.stringify({ migratedAt: now, by, from: SHARED_KEY, ackStale: true }),
+        updated_at: now,
+        updated_by: by,
+      },
+      { onConflict: "store_key,scope,owner" }
+    );
+    if (error) { sbFail("비용 비교 표시 저장", error, { write: true }); return; }
+    setStaleV1(null);
+  };
+
+  const exportStaleV1 = () => {
+    if (!staleV1) return;
+    const blob = new Blob([JSON.stringify(staleV1.projects, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "비용비교_옛화면저장분_" + todayStr() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   /* 내 화면 내용으로 공유 저장소 덮어쓰기 */
@@ -16081,9 +16422,10 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
       try {
         const data = JSON.parse(String(reader.result));
         if (!Array.isArray(data)) throw new Error("형식이 맞지 않습니다");
-        const fixed = data.map(migrate);
-        setProjects(fixed);
-        setActiveId(fixed[0] ? fixed[0].id : null);
+        // ★ 2026-10-21 — 바로 바꾸지 않는다. 불러오면 «모든 프로젝트» 가 파일 내용으로 바뀌고 곧 자동 저장된다
+        //   → 무엇이 무엇으로 바뀌는지 보여 주고 한 번 더 묻는다(아래 확인 띠).
+        if (!data.length) throw new Error("빈 백업");
+        setPendingImport({ name: f.name, list: data.map(migrate) });
       } catch (err) {
         setNotice("백업을 불러오지 못했습니다. 이 도구에서 내려받은 파일인지 확인해주세요.");
       }
@@ -16104,7 +16446,17 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
         cy ? cy.label : it.cycle,
         ...project.services.map((s) => String(evalCell(it.values[s.id], rvars).value)),
       ]);
+      // 견적 조건이 있는 항목은 바로 아랫줄에 조건을 적는다(숫자 칸은 숫자로 남긴다).
+      const tts = project.services.map((s) =>
+        it.cycle === "deposit" ? "" : termsText(itemTerms(it, s.id), it.cycle)
+      );
+      if (tts.some(Boolean)) rows.push(["  └ 조건", "", ...tts]);
     }
+    rows.push([
+      "약정(개월)",
+      "",
+      ...project.services.map((s) => (serviceCommit(s) ? String(serviceCommit(s)) : "")),
+    ]);
     rows.push([]);
     rows.push([
       "월 환산 합계",
@@ -16131,6 +16483,23 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
     a.click();
     URL.revokeObjectURL(a.href);
   };
+
+  if (loadError) {
+    return (
+      <div className="tcc-root">
+        <style>{CSS}</style>
+        <div className="tcc-conflict">
+          <span>
+            저장된 비교 자료를 불러오지 못했습니다. 자료가 사라진 것이 아니라 «읽지 못한» 것이라,
+            덮어쓰지 않도록 화면을 열지 않았습니다. ({loadError})
+          </span>
+          <div className="tcc-inline">
+            <button className="tcc-btn tcc-btn-solid" onClick={retryLoad}>다시 시도</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (projects === null || !project) {
     return (
@@ -16206,12 +16575,68 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
         </div>
       )}
 
+      {staleV1 && !pendingImport && (
+        <div className="tcc-conflict">
+          <span>
+            새로고침 전 옛 화면에서 저장된 내용이 있습니다 · {staleV1.updatedBy} {agoText(staleV1.updatedAt)}
+            (프로젝트 {staleV1.projects.length}개). 지금 화면에는 들어 있지 않습니다.
+          </span>
+          <div className="tcc-inline">
+            <button
+              className="tcc-btn tcc-btn-solid"
+              onClick={() => setPendingImport({ name: "옛 화면 저장분", list: staleV1.projects.map(migrate), fromStale: true })}
+            >
+              그 내용 가져오기
+            </button>
+            <button className="tcc-btn tcc-btn-ghost" onClick={exportStaleV1}>그 내용 내려받기</button>
+            <ConfirmButton className="tcc-btn" label="버리기" confirmLabel="정말 버릴까요?" onConfirm={ackStaleV1} />
+          </div>
+        </div>
+      )}
+
+      {!remoteChanged && remoteSeen && (
+        <div className="tcc-notice">
+          다른 사람이 프로젝트 {remoteSeen.count}개를 수정했습니다
+          {remoteSeen.by ? " · " + remoteSeen.by + " " + agoText(remoteSeen.at) : ""}. 내 저장은 막히지 않습니다
+          (같은 프로젝트를 고쳤을 때만 보류).
+          <button className="tcc-linkbtn" onClick={pullLatest} style={{ marginLeft: 8 }}>
+            최신 내용 불러오기
+          </button>
+        </div>
+      )}
+
       {!remoteChanged && meta && meta.updatedBy && (
         <div className="tcc-lastedit">
           마지막 수정 · {meta.updatedBy} · {agoText(meta.updatedAt)}
           <button className="tcc-linkbtn" onClick={pullLatest}>
             새로고침
           </button>
+        </div>
+      )}
+
+      {pendingImport && (
+        <div className="tcc-conflict">
+          <span>
+            백업 «{pendingImport.name}»(프로젝트 {pendingImport.list.length}개)으로 지금 내용
+            (프로젝트 {projects.length}개)을 <b>통째로 바꿉니다</b>. 바꾸면 곧 자동 저장되어 모든 사람의 화면이 바뀝니다.
+            먼저 지금 내용을 내려받아 두는 것을 권합니다.
+          </span>
+          <div className="tcc-inline">
+            <button className="tcc-btn tcc-btn-ghost" onClick={exportJson}>지금 내용 내려받기</button>
+            <button className="tcc-btn" onClick={() => setPendingImport(null)}>취소</button>
+            <ConfirmButton
+              className="tcc-btn tcc-btn-solid"
+              label="백업으로 바꾸기"
+              confirmLabel="정말 바꿀까요?"
+              onConfirm={() => {
+                const fixed = pendingImport.list;
+                if (pendingImport.fromStale) ackStaleV1();
+                setPendingImport(null);
+                setProjects(fixed);
+                setActiveId(fixed[0] ? fixed[0].id : null);
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -16275,10 +16700,11 @@ function ToolCostCompare({ nav, onProjects, currentUserEmail } = {}) {
               </div>
               <div className="tcc-main">
                 {tab === "cost" && (
-                  <CostTab project={project} patch={patch} exportCsv={exportCsv} />
+                  <CostTab project={project} patch={patch} exportCsv={exportCsv} me={me} />
                 )}
                 {tab === "feature" && <FeatureTab project={project} patch={patch} />}
                 {tab === "result" && <ResultTab project={project} patch={patch} />}
+                {tab === "report" && <ReportTab project={project} me={me} />}
                 {tab === "history" && <HistoryTab project={project} patch={patch} me={me} />}
                 {tab === "setup" && <SetupTab project={project} patch={patch} />}
               </div>
@@ -16354,7 +16780,8 @@ function SetupTab({ project, patch }) {
     patch((p) => ({
       services: [...p.services, { id: sid, name: "후보 " + (p.services.length + 1) }],
       costItems: p.costItems.map((it) => ({ ...it, values: { ...it.values, [sid]: "" } })),
-      featureItems: p.featureItems.map((f) => ({ ...f, scores: { ...f.scores, [sid]: 3 } })),
+      // 새 후보의 기능 점수는 빈칸(미채점)으로 둔다 — 3점을 넣으면 안 매겨도 60점에서 시작한다.
+      featureItems: p.featureItems.map((f) => ({ ...f, scores: { ...f.scores } })),
     }));
   };
 
@@ -16454,15 +16881,18 @@ function SetupTab({ project, patch }) {
                   onChange={(e) => updVar(v.id, "max", e.target.value)}
                 />
               </div>
-              <button className="tcc-mini" onClick={() => moveVar(v.id, -1)} title="위로">
-                ↑
-              </button>
-              <button className="tcc-mini" onClick={() => moveVar(v.id, 1)} title="아래로">
-                ↓
-              </button>
-              <button className="tcc-x" onClick={() => delVar(v.id)} title="삭제">
-                ×
-              </button>
+              {/* ★ 2026-10-22 — ↑ ↓ × 는 비용표·기능 평가와 같은 한 묶음(tcc-td-tool)으로. */}
+              <span className="tcc-td-tool">
+                <button className="tcc-mini" onClick={() => moveVar(v.id, -1)} title="위로">
+                  ↑
+                </button>
+                <button className="tcc-mini" onClick={() => moveVar(v.id, 1)} title="아래로">
+                  ↓
+                </button>
+                {/* ★ 2026-10-21 — 지우기는 두 번 누른다(회차 삭제와 같은 ConfirmButton). 한 번에 지워지면 되돌릴 길이 없다. */}
+                <ConfirmButton className="tcc-mini tcc-mini-del" label="×" confirmLabel="삭제" title="삭제"
+                  onConfirm={() => delVar(v.id)} />
+              </span>
             </div>
           ))}
         </div>
@@ -16506,9 +16936,8 @@ function SetupTab({ project, patch }) {
                       </option>
                     ))}
                   </select>
-                  <button className="tcc-x" onClick={() => delService(s.id)} title="삭제">
-                    ×
-                  </button>
+                  <ConfirmButton className="tcc-x" label="×" confirmLabel="삭제" title="삭제"
+                    onConfirm={() => delService(s.id)} />
                 </div>
                 <div className="tcc-svcgrid">
                   <label>
@@ -16613,8 +17042,91 @@ function SetupTab({ project, patch }) {
 /* =========================================================
    비용표 탭
    ========================================================= */
-function CostTab({ project, patch, exportCsv }) {
+/* 견적 근거(2026-10-22 · 10-16 검토 4번) — 칸(비용 항목 × 비교 대상)마다.
+   item.quotes[serviceId] = { link, date, files: [{ path, name, size, at, by }] }
+   ★ 파일은 비공개 버킷 cost-quotes(sql/cost_quote_files.sql)에 «프로젝트id/무작위id.확장자» 로 두고,
+     원래 이름은 여기 JSON 에만 적는다(경로에 업체명 등을 안 남긴다). 열 때는 2분짜리 서명 주소. */
+const COST_QUOTE_BUCKET = "cost-quotes";
+
+function quoteOf(item, serviceId) {
+  const q = ((item && item.quotes) || {})[serviceId] || {};
+  return { link: q.link || "", date: q.date || "", files: Array.isArray(q.files) ? q.files : [] };
+}
+
+function quoteActive(q) {
+  return !!(q.link || q.date || q.files.length);
+}
+
+/* 링크는 http(s) 만 연다 — javascript: 같은 주소가 섞여 들어와도 누르면 안 되게. */
+function safeHttpUrl(s) {
+  const v = String(s || "").trim();
+  return /^https?:\/\//i.test(v) ? v : "";
+}
+
+function CostTab({ project, patch, exportCsv, me }) {
   const [openNote, setOpenNote] = useState(null);
+  const [quoteBusy, setQuoteBusy] = useState("");   // 올리는 중인 칸 key
+  const [quoteErr, setQuoteErr] = useState("");
+
+  const updQuote = (id, sid, fn) =>
+    patch((p) => ({
+      costItems: p.costItems.map((it) => {
+        if (it.id !== id) return it;
+        const quotes = { ...(it.quotes || {}) };
+        quotes[sid] = fn(quoteOf(it, sid));
+        return { ...it, quotes };
+      }),
+    }));
+
+  const uploadQuote = async (id, sid, file) => {
+    if (!file) return;
+    const key = id + ":" + sid;
+    setQuoteErr("");
+    if (file.size > 20 * 1024 * 1024) {
+      setQuoteErr("20MB 넘는 파일은 올릴 수 없습니다.");
+      return;
+    }
+    setQuoteBusy(key);
+    const m = /\.([A-Za-z0-9]{1,8})$/.exec(file.name || "");
+    const path = project.id + "/" + uid() + (m ? "." + m[1].toLowerCase() : "");
+    try {
+      const up = await sb.storage.from(COST_QUOTE_BUCKET).upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      updQuote(id, sid, (q) => ({
+        ...q,
+        files: [...q.files, { path, name: file.name || "견적서", size: file.size, at: new Date().toISOString(), by: me || "" }],
+      }));
+    } catch (e) {
+      setQuoteErr("파일을 올리지 못했습니다: " + ((e && e.message) || e));
+    } finally {
+      setQuoteBusy("");
+    }
+  };
+
+  const openQuoteFile = async (f) => {
+    setQuoteErr("");
+    const { data, error } = await sb.storage.from(COST_QUOTE_BUCKET).createSignedUrl(f.path, 120, { download: f.name || true });
+    if (error || !data) {
+      setQuoteErr("파일을 열지 못했습니다: " + ((error && error.message) || "주소 없음"));
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
+  // 저장소에서 먼저 지우고, 지워졌을 때만 목록에서 뺀다(목록만 빠지면 파일이 고아로 남는다).
+  // ⚠ 복제한 프로젝트·검토 회차가 같은 파일을 가리키면 거기서도 열리지 않게 된다(열 때 오류로 알린다).
+  const delQuoteFile = async (id, sid, f) => {
+    setQuoteErr("");
+    const { error } = await sb.storage.from(COST_QUOTE_BUCKET).remove([f.path]);
+    if (error) {
+      setQuoteErr("파일을 지우지 못했습니다: " + error.message);
+      return;
+    }
+    updQuote(id, sid, (q) => ({ ...q, files: q.files.filter((x) => x.path !== f.path) }));
+  };
 
   const addItem = () =>
     patch((p) => {
@@ -16640,6 +17152,35 @@ function CostTab({ project, patch, exportCsv }) {
       ),
     }));
 
+  const [openTerms, setOpenTerms] = useState(null);   // "항목id:서비스id" — 한 번에 한 칸만 펼친다
+
+  const updTerms = (id, sid, key, val) =>
+    patch((p) => ({
+      costItems: p.costItems.map((it) => {
+        if (it.id !== id) return it;
+        const terms = { ...(it.terms || {}) };
+        terms[sid] = { ...(terms[sid] || {}), [key]: val };
+        return { ...it, terms };
+      }),
+    }));
+
+  const clearTerms = (id, sid) =>
+    patch((p) => ({
+      costItems: p.costItems.map((it) => {
+        if (it.id !== id) return it;
+        const terms = { ...(it.terms || {}) };
+        delete terms[sid];
+        return { ...it, terms };
+      }),
+    }));
+
+  const updCommit = (sid, val) =>
+    patch((p) => ({
+      services: p.services.map((s) => (s.id === sid ? { ...s, commitMonths: val } : s)),
+    }));
+
+  // ★ 항목을 지워도 견적서 파일은 저장소에 남긴다 — 검토 회차·복제한 프로젝트가 같은 파일을 가리킬 수 있다.
+  //   파일을 지우는 것은 칸 안의 [×](사람이 그 파일을 지우겠다고 고른 때)뿐이다.
   const delItem = (id) => patch((p) => ({ costItems: p.costItems.filter((it) => it.id !== id) }));
 
   const moveItem = (id, dir) =>
@@ -16656,7 +17197,10 @@ function CostTab({ project, patch, exportCsv }) {
 
   const rvars = resolveVars(project.vars);   // 화면과 셀 계산이 같은 값을 보게 한 번만 푼다
   const totals = project.services.map((s) => computeService(project, s.id));
-  const minTotal = Math.min(...totals.map((t) => t.total));
+  // «최저» 는 탈락 안을 빼고 고른다(탈락 안의 칸에는 표시를 안 붙인다).
+  const minTotal = tccMin(
+    totals.filter((t, i) => isServiceActive(project.services[i])).map((t) => t.total)
+  );
 
   return (
     <div className="tcc-pane">
@@ -16770,6 +17314,10 @@ function CostTab({ project, patch, exportCsv }) {
                 </td>
                 {project.services.map((s) => {
                   const r = evalCell(it.values[s.id], rvars);
+                  const t = itemTerms(it, s.id);
+                  const q = quoteOf(it, s.id);
+                  const key = it.id + ":" + s.id;
+                  const raw = ((it.terms || {})[s.id]) || {};
                   return (
                     <td key={s.id} className="tcc-td-cell">
                       <AutoGrow
@@ -16781,29 +17329,162 @@ function CostTab({ project, patch, exportCsv }) {
                       <div className={"tcc-cellpre" + (r.error ? " is-err" : "")}>
                         {r.error ? r.error : r.empty ? "" : won(r.value) + "원"}
                       </div>
+                      {/* 견적 조건 + 견적 근거 — 조건은 회수 예정에는 붙이지 않는다(돌려받는 돈이라 총비용에 안 들어간다). */}
+                      {(() => {
+                        const parts = [];
+                        if (it.cycle !== "deposit" && termsActive(t)) parts.push(termsText(t, it.cycle));
+                        if (quoteActive(q)) {
+                          parts.push("근거" + (q.date ? " " + q.date : "") + (q.files.length ? " · 파일 " + q.files.length : ""));
+                        }
+                        return (
+                          <button
+                            className={"tcc-termsbtn" + (parts.length ? " is-on" : "")}
+                            onClick={() => setOpenTerms(openTerms === key ? null : key)}
+                            title="견적 조건(부가세·할인·시작 달·인상률)과 견적 근거(링크·견적일·파일)"
+                          >
+                            {parts.length ? parts.join(" · ") : it.cycle === "deposit" ? "+ 근거" : "+ 조건·근거"}
+                          </button>
+                        );
+                      })()}
+                      {openTerms === key && (
+                        <div className="tcc-terms">
+                          {it.cycle !== "deposit" && (<>
+                          <div className="tcc-terms-h">견적 조건</div>
+                          <label className="tcc-terms-row">
+                            <input
+                              type="checkbox"
+                              checked={t.vat}
+                              onChange={(e) => updTerms(it.id, s.id, "vat", e.target.checked)}
+                            />
+                            부가세 별도 견적(+10%)
+                          </label>
+                          <div className="tcc-terms-row">
+                            할인
+                            <input className="tcc-in tcc-terms-in" type="number" min={0} max={100}
+                              value={raw.discPct ?? ""} placeholder="0"
+                              onChange={(e) => updTerms(it.id, s.id, "discPct", e.target.value)} />%
+                          </div>
+                          {it.cycle !== "once" && (
+                            <div className="tcc-terms-row">
+                              할인 기간 처음
+                              <input className="tcc-in tcc-terms-in" type="number" min={0}
+                                value={raw.discMonths ?? ""} placeholder="0"
+                                onChange={(e) => updTerms(it.id, s.id, "discMonths", e.target.value)} />개월
+                            </div>
+                          )}
+                          {it.cycle === "once" && (
+                            <div className="tcc-terms-note">1회성은 할인 %만 적용됩니다.</div>
+                          )}
+                          <div className="tcc-terms-row">
+                            과금 시작
+                            <input className="tcc-in tcc-terms-in" type="number" min={1}
+                              value={raw.start ?? ""} placeholder="1"
+                              onChange={(e) => updTerms(it.id, s.id, "start", e.target.value)} />개월차부터
+                          </div>
+                          {it.cycle !== "once" && (
+                            <div className="tcc-terms-row">
+                              연 인상률
+                              <input className="tcc-in tcc-terms-in" type="number" step={0.5}
+                                value={raw.rise ?? ""} placeholder="0"
+                                onChange={(e) => updTerms(it.id, s.id, "rise", e.target.value)} />%
+                            </div>
+                          )}
+                          {termsActive(t) && (
+                            <div className="tcc-terms-acts">
+                              <button className="tcc-linkbtn" onClick={() => clearTerms(it.id, s.id)}>조건 지우기</button>
+                            </div>
+                          )}
+                          </>)}
+                          <div className="tcc-terms-h">견적 근거</div>
+                          <input
+                            className="tcc-in tcc-quote-in"
+                            value={q.link}
+                            placeholder="견적서·요금표 링크(https://…)"
+                            onChange={(e) => updQuote(it.id, s.id, (o) => ({ ...o, link: e.target.value }))}
+                          />
+                          {safeHttpUrl(q.link) && (
+                            <a className="tcc-linkbtn" href={safeHttpUrl(q.link)} target="_blank" rel="noopener noreferrer">링크 열기 ↗</a>
+                          )}
+                          <div className="tcc-terms-row">
+                            견적일
+                            <input
+                              className="tcc-in tcc-quote-date"
+                              type="date"
+                              value={q.date}
+                              onChange={(e) => updQuote(it.id, s.id, (o) => ({ ...o, date: e.target.value }))}
+                            />
+                          </div>
+                          {q.files.map((f) => (
+                            <div key={f.path} className="tcc-quote-file">
+                              <button className="tcc-linkbtn" onClick={() => openQuoteFile(f)} title={(f.by ? f.by + " · " : "") + (f.at || "").slice(0, 10)}>
+                                {f.name}
+                              </button>
+                              <ConfirmButton className="tcc-mini tcc-mini-del" label="×" confirmLabel="삭제"
+                                title="파일 삭제" onConfirm={() => delQuoteFile(it.id, s.id, f)} />
+                            </div>
+                          ))}
+                          <label className={"tcc-btn tcc-quote-up" + (quoteBusy === key ? " is-busy" : "")}>
+                            {quoteBusy === key ? "올리는 중…" : "+ 견적서 파일"}
+                            <input
+                              type="file"
+                              hidden
+                              disabled={!!quoteBusy}
+                              onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; uploadQuote(it.id, s.id, f); }}
+                            />
+                          </label>
+                          {quoteErr && <div className="tcc-err">{quoteErr}</div>}
+                          <div className="tcc-terms-acts">
+                            <button className="tcc-btn" onClick={() => setOpenTerms(null)}>닫기</button>
+                          </div>
+                        </div>
+                      )}
                     </td>
                   );
                 })}
                 <td className="tcc-td-tool">
-                  <button className="tcc-mini" onClick={() => moveItem(it.id, -1)}>
+                  <button className="tcc-mini" onClick={() => moveItem(it.id, -1)} title="위로">
                     ↑
                   </button>
-                  <button className="tcc-mini" onClick={() => moveItem(it.id, 1)}>
+                  <button className="tcc-mini" onClick={() => moveItem(it.id, 1)} title="아래로">
                     ↓
                   </button>
-                  <button className="tcc-mini tcc-mini-del" onClick={() => delItem(it.id)}>
-                    ×
-                  </button>
+                  <ConfirmButton className="tcc-mini tcc-mini-del" label="×" confirmLabel="삭제"
+                    title="삭제" onConfirm={() => delItem(it.id)} />
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="tcc-sum">
-              <td colSpan={2}>월 환산 합계</td>
+              <td colSpan={2}>
+                월 환산 합계
+                <span className="tcc-sum-sub">정가 · 할인·인상 전 · 부가세 별도분 포함</span>
+              </td>
               {totals.map((t, i) => (
                 <td key={i} className="tcc-num">
                   {won(t.perMonth)}원
+                </td>
+              ))}
+              <td></td>
+            </tr>
+            <tr className="tcc-sum">
+              <td colSpan={2}>
+                약정 (최소 이용 기간)
+                <span className="tcc-sum-sub">비교 기간보다 길면 약정 끝까지 낸 돈을 셉니다</span>
+              </td>
+              {project.services.map((s) => (
+                <td key={s.id} className="tcc-num">
+                  <span className="tcc-commit">
+                    <input
+                      className="tcc-in tcc-terms-in"
+                      type="number"
+                      min={0}
+                      value={s.commitMonths ?? ""}
+                      placeholder="없음"
+                      onChange={(e) => updCommit(s.id, e.target.value)}
+                    />
+                    개월
+                  </span>
                 </td>
               ))}
               <td></td>
@@ -16831,12 +17512,18 @@ function CostTab({ project, patch, exportCsv }) {
             )}
             <tr className="tcc-sum tcc-sum-strong">
               <td colSpan={2}>{project.horizonMonths}개월 총비용</td>
-              {totals.map((t, i) => (
-                <td key={i} className={"tcc-num" + (t.total === minTotal ? " is-best" : "")}>
-                  {won(t.total)}원
-                  {t.total === minTotal && <span className="tcc-badge">최저</span>}
-                </td>
-              ))}
+              {totals.map((t, i) => {
+                const best = minTotal !== null && isServiceActive(project.services[i]) && t.total === minTotal;
+                return (
+                  <td key={i} className={"tcc-num" + (best ? " is-best" : "")}>
+                    {won(t.total)}원
+                    {best && <span className="tcc-badge">최저</span>}
+                    {t.commitOver && (
+                      <span className="tcc-unrated">약정 {t.commit}개월까지 포함</span>
+                    )}
+                  </td>
+                );
+              })}
               <td></td>
             </tr>
           </tfoot>
@@ -16851,6 +17538,29 @@ function CostTab({ project, patch, exportCsv }) {
           표 CSV로 내려받기
         </button>
       </div>
+
+      {/* 월별 흐름 — 할인·시작 달·인상률·연 결제 달이 반영된 누적 지출. 선이 만나는 달이 유불리가 뒤집히는 때다. */}
+      {project.services.length > 0 && (
+        <Section
+          title="월별 누적 비용"
+          desc="할인·과금 시작 달·연 인상률·연 결제 달을 반영해 달마다 쌓이는 지출입니다(회수 예정 제외)."
+        >
+          <SweepChart
+            sweep={{
+              min: 0,
+              max: Number(project.horizonMonths) || 36,
+              points: [0, ...totals[0].flow.map((_, m) => m + 1)].map((x) => ({
+                x,
+                ys: totals.map((t) => t.flow.slice(0, x).reduce((a, b) => a + b, 0)),
+              })),
+            }}
+            services={project.services}
+            currentX={null}
+            unit="개월"
+            hint="가로축은 개월, 세로축은 누적 지출입니다. 선이 교차하는 달부터 유불리가 뒤집힙니다."
+          />
+        </Section>
+      )}
 
       <div className="tcc-guide">
         <div className="tcc-guide-title">수식 쓰는 법</div>
@@ -16871,6 +17581,285 @@ function CostTab({ project, patch, exportCsv }) {
   );
 }
 
+/* 비교 대상마다 한 줄 — 결론 카드·요약·AI 프롬프트가 같은 값을 읽는다. */
+function tccRows(p) {
+  return p.services.map((s) => {
+    const c = computeService(p, s.id);   // c.deposit 은 총비용에 안 들어간다(회수되는 돈)
+    const sc = computeScore(p, s.id);
+    return {
+      id: s.id,
+      name: s.name,
+      state: s.state,
+      active: isServiceActive(s),
+      total: c.total,
+      perMonth: c.perMonth,
+      once: c.once,
+      // ★ 카드와 AI 프롬프트가 이 값을 읽는다. 여기 빠뜨리면 화면에서 조용히 사라진다
+      //   (2026-08-24 실제로 빠뜨렸다 — 비용표 탭은 computeService 결과를 직접 써서
+      //    정상이었고 결론 탭 카드만 안 떴다).
+      deposit: c.deposit,
+      commit: c.commit,
+      commitOver: c.commitOver,
+      flow: c.flow,
+      score: sc.score,
+      rated: sc.rated,
+      unrated: sc.unrated,
+      efficiency: sc.score > 0 ? c.total / sc.score : Infinity,
+    };
+  });
+}
+
+/* 판정(비용 최저·기능 최고·가성비)은 탈락 안을 뺀다. 기능은 하나라도 매긴 안만.
+   가성비 기준 — «기능 X점 이상인 안 중 총비용이 가장 낮은 안»(2026-10-22 제니 결정 · 프로젝트마다 · 기본 60).
+   예전엔 총비용÷기능점수가 가장 낮은 안이라 싸고 평범한 안이 늘 이겼다. */
+function tccJudge(p) {
+  const pickMin = isFinite(Number(p.pickMinScore)) && p.pickMinScore !== "" && p.pickMinScore !== null
+    ? Number(p.pickMinScore) : 60;
+  const rows = tccRows(p);
+  const judged = rows.filter((r) => r.active);
+  const minTotal = tccMin(judged.map((r) => r.total));
+  const maxScore = tccMax(judged.filter((r) => r.rated > 0).map((r) => r.score));
+  const pickTotal = tccMin(judged.filter((r) => r.rated > 0 && r.score >= pickMin).map((r) => r.total));
+  const isPick = (r) => pickTotal !== null && r.active && r.rated > 0 && r.score >= pickMin && r.total === pickTotal;
+  return { rows, judged, minTotal, maxScore, pickMin, pickTotal, isPick };
+}
+
+/* =========================================================
+   요약 탭 — 보고용 한 장 (2026-10-22 · 10-16 검토 5번 · 제니: 프로토타입 없음 · 화면과 인쇄 둘 다)
+   ★ 새로 계산하지 않는다 — 판정은 tccJudge, 금액은 computeService, 조건 글은 termsText 를 그대로 읽는다.
+   ★ 인쇄는 새 창에 이 판만 옮겨 «라이트» 로 찍는다 — 콘솔 안에서 바로 찍으면 사이드바·다크 바탕이 함께 나온다.
+   ========================================================= */
+function ReportTab({ project, me }) {
+  const ref = useRef(null);
+  const { rows, minTotal, maxScore, pickMin, pickTotal, isPick } = tccJudge(project);
+  const months = Number(project.horizonMonths) || 36;
+  const decided = project.services.find((s) => s.id === (project.decision || {}).serviceId) || null;
+  const pick = rows.find(isPick) || null;
+  const c = project.contract || {};
+  const notice = c.endsAt ? addDays(c.endsAt, -Number(c.noticeDays || 0)) : "";
+  const logs = [...(project.logs || [])].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 5);
+  const rvars = resolveVars(project.vars);
+  const stateLabel = (k) => (SERVICE_STATES.find((x) => x.key === k) || {}).label || "";
+
+  const print = () => {
+    const node = ref.current;
+    if (!node) return;
+    const w = window.open("", "_blank");
+    if (!w) { alert("새 창이 막혔습니다. 브라우저에서 팝업을 허용한 뒤 다시 눌러주세요."); return; }
+    // 콘솔의 스타일을 그대로 싣고 라이트로 켠다 — 색은 CSS 변수가 알아서 바뀐다.
+    const styles = [...document.querySelectorAll("style, link[rel=stylesheet]")].map((n) => n.outerHTML).join("\n");
+    w.document.write(
+      '<!doctype html><html lang="ko" data-theme="light"><head><meta charset="utf-8"><title>' +
+        String(project.name).replace(/[<>&]/g, "") + " — 비용 비교 요약</title>" + styles +
+        "<style>body{background:#fff;margin:0;padding:18px}.tcc-noprint{display:none!important}" +
+        "@page{size:A4;margin:12mm}@media print{body{padding:0}}</style></head><body>" +
+        '<div class="tcc-root">' + node.outerHTML + "</div></body></html>"
+    );
+    w.document.close();
+    // 글꼴·그림을 다 그린 뒤 인쇄 창을 띄운다.
+    setTimeout(() => { w.focus(); w.print(); }, 600);
+  };
+
+  return (
+    <div className="tcc-pane">
+      <div className="tcc-rowactions tcc-noprint">
+        <button className="tcc-btn tcc-btn-solid" onClick={print}>인쇄 · PDF 저장</button>
+        <span className="tcc-hint">새 창에서 인쇄 창이 뜹니다 — «PDF로 저장» 을 고르면 파일이 됩니다.</span>
+      </div>
+
+      <article className="tcc-report" ref={ref}>
+        <header className="tcc-rep-head">
+          <div className="tcc-rep-kicker">비용 비교 요약</div>
+          <h1 className="tcc-rep-title">{project.name}</h1>
+          <div className="tcc-rep-meta">
+            {todayStr()} 작성{me ? " · " + me : ""} · 비교 기간 {months}개월
+            {project.updatedAt ? " · 최근 편집 " + String(project.updatedAt).slice(0, 10) + (project.updatedBy ? " " + project.updatedBy : "") : ""}
+          </div>
+        </header>
+
+        <section className="tcc-rep-sec tcc-rep-verdict">
+          {decided ? (
+            <p>
+              <b>선택: {decided.name}</b>
+              {project.decision.decidedAt ? " (" + project.decision.decidedAt + " 결정)" : ""}
+              {project.decision.reason ? " — " + project.decision.reason : ""}
+            </p>
+          ) : null}
+          {pick ? (
+            <p>
+              <b>가성비 최고: {pick.name}</b> — 기능 {pickMin}점 이상인 안 중 {months}개월 총비용이 가장 낮습니다
+              ({wonKo(pick.total)}원 · 기능 {pick.score.toFixed(1)}점).
+            </p>
+          ) : (
+            <p>기능 {pickMin}점 이상인 안이 없습니다.</p>
+          )}
+        </section>
+
+        <section className="tcc-rep-sec">
+          <h2>비교 한눈에</h2>
+          <table className="tcc-table tcc-rep-table">
+            <thead>
+              <tr>
+                <th>안</th>
+                <th className="tcc-num">{months}개월 총비용</th>
+                <th className="tcc-num">월 환산</th>
+                <th className="tcc-num">1회성</th>
+                <th className="tcc-num">기능 총점</th>
+                <th>판정</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className={r.active ? "" : "is-dropped"}>
+                  <td>
+                    {r.name}
+                    {!r.active && <span className="tcc-unrated">{stateLabel(r.state)} — 판정 제외</span>}
+                    {r.commit > 0 && <span className="tcc-unrated">약정 {r.commit}개월{r.commitOver ? " (총비용에 약정 끝까지 포함)" : ""}</span>}
+                    {r.deposit > 0 && <span className="tcc-unrated">회수 예정 {wonKo(r.deposit)}원 별도</span>}
+                  </td>
+                  <td className="tcc-num">{won(r.total)}원</td>
+                  <td className="tcc-num">{won(r.perMonth)}원</td>
+                  <td className="tcc-num">{won(r.once)}원</td>
+                  <td className="tcc-num">
+                    {r.rated > 0 ? r.score.toFixed(1) + "점" : "미채점"}
+                    {r.rated > 0 && r.unrated > 0 && <span className="tcc-unrated">미채점 {r.unrated}개 제외</span>}
+                  </td>
+                  <td>
+                    {[
+                      r.active && minTotal !== null && r.total === minTotal ? "비용 최저" : "",
+                      r.active && r.rated > 0 && maxScore !== null && r.score === maxScore ? "기능 최고" : "",
+                      isPick(r) ? "가성비 최고" : "",
+                    ].filter(Boolean).join(" · ") || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        {rows.length > 0 && (
+          <section className="tcc-rep-sec tcc-rep-chart">
+            <h2>월별 누적 비용</h2>
+            <SweepChart
+              sweep={{
+                min: 0,
+                max: months,
+                points: [0, ...rows[0].flow.map((_, m) => m + 1)].map((x) => ({
+                  x,
+                  ys: rows.map((r) => r.flow.slice(0, x).reduce((a, b) => a + b, 0)),
+                })),
+              }}
+              services={project.services}
+              currentX={null}
+              unit="개월"
+              hint="할인·과금 시작 달·연 인상률·연 결제 달을 반영한 누적 지출입니다(회수 예정 제외)."
+            />
+          </section>
+        )}
+
+        <section className="tcc-rep-sec">
+          <h2>비용 항목</h2>
+          <table className="tcc-table tcc-rep-table">
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>주기</th>
+                {project.services.map((s) => <th key={s.id} className="tcc-num">{s.name}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {project.costItems.map((it) => (
+                <tr key={it.id}>
+                  <td>
+                    {it.label}
+                    {it.note && <span className="tcc-unrated">{it.note}</span>}
+                  </td>
+                  <td>{(CYCLES.find((x) => x.key === it.cycle) || {}).label || it.cycle}</td>
+                  {project.services.map((s) => {
+                    const r = evalCell(it.values[s.id], rvars);
+                    const tt = it.cycle === "deposit" ? "" : termsText(itemTerms(it, s.id), it.cycle);
+                    const q = quoteOf(it, s.id);
+                    return (
+                      <td key={s.id} className="tcc-num">
+                        {r.error ? "계산 불가" : won(r.value) + "원"}
+                        {tt && <span className="tcc-unrated">{tt}</span>}
+                        {(q.date || q.files.length > 0 || q.link) && (
+                          <span className="tcc-unrated">
+                            근거{q.date ? " " + q.date : ""}{q.files.length ? " · 파일 " + q.files.length : ""}{q.link ? " · 링크" : ""}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        {project.featureItems.length > 0 && (
+          <section className="tcc-rep-sec">
+            <h2>기능 평가 <span className="tcc-rep-sub">중요도 1–5 · 점수 0–5</span></h2>
+            <table className="tcc-table tcc-rep-table">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th className="tcc-num">중요도</th>
+                  {project.services.map((s) => <th key={s.id} className="tcc-num">{s.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {project.featureItems.map((f) => (
+                  <tr key={f.id}>
+                    <td>{f.label}</td>
+                    <td className="tcc-num">{f.weight}</td>
+                    {project.services.map((s) => (
+                      <td key={s.id} className="tcc-num">{isScoreUnset(f.scores[s.id]) ? "—" : f.scores[s.id]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {(c.startedAt || c.endsAt) && (
+          <section className="tcc-rep-sec">
+            <h2>계약 일정</h2>
+            <p className="tcc-rep-line">
+              계약 {c.startedAt || "미입력"} ~ {c.endsAt || "미입력"}
+              {c.endsAt ? " · 종료까지 " + daysUntil(c.endsAt) + "일" : ""}
+              {notice ? " · 해지 통보 기한 " + notice : ""}
+            </p>
+          </section>
+        )}
+
+        {project.aiComment && (
+          <section className="tcc-rep-sec">
+            <h2>AI 검토 의견 <span className="tcc-rep-sub">참고용{project.aiCommentAt ? " · " + String(project.aiCommentAt).slice(0, 10) : ""}</span></h2>
+            <CommentView data={project.aiComment} />
+          </section>
+        )}
+
+        {logs.length > 0 && (
+          <section className="tcc-rep-sec">
+            <h2>최근 운영 기록</h2>
+            <ul className="tcc-rep-logs">
+              {logs.map((l) => (
+                <li key={l.id}>
+                  <span className="tcc-logdate">{l.date}</span>{" "}
+                  [{(LOG_TYPES.find((x) => x.key === l.type) || {}).label || l.type}] {l.text}
+                  {l.by && <span className="tcc-logby">{l.by}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </article>
+    </div>
+  );
+}
+
 /* =========================================================
    기능 평가 탭
    ========================================================= */
@@ -16878,27 +17867,29 @@ function FeatureTab({ project, patch }) {
   const [openDesc, setOpenDesc] = useState(null);
 
   const addFeature = () =>
-    patch((p) => {
-      const scores = {};
-      p.services.forEach((s) => (scores[s.id] = 3));
-      return {
-        featureItems: [
-          ...p.featureItems,
-          { id: uid(), label: "새 평가 항목", desc: "", weight: 3, scores },
-        ],
-      };
-    });
+    patch((p) => ({
+      // 점수는 빈칸(미채점)으로 시작한다 — 매긴 칸만 총점에 들어간다.
+      featureItems: [
+        ...p.featureItems,
+        { id: uid(), label: "새 평가 항목", desc: "", weight: 3, scores: {} },
+      ],
+    }));
 
   const updFeature = (id, key, val) =>
     patch((p) => ({
       featureItems: p.featureItems.map((f) => (f.id === id ? { ...f, [key]: val } : f)),
     }));
 
+  // 지금 켜진 점수를 한 번 더 누르면 빈칸(미채점)으로 돌린다.
   const updScore = (id, sid, val) =>
     patch((p) => ({
-      featureItems: p.featureItems.map((f) =>
-        f.id === id ? { ...f, scores: { ...f.scores, [sid]: Number(val) } } : f
-      ),
+      featureItems: p.featureItems.map((f) => {
+        if (f.id !== id) return f;
+        const next = { ...f.scores };
+        if (!isScoreUnset(next[sid]) && Number(next[sid]) === Number(val)) delete next[sid];
+        else next[sid] = Number(val);
+        return { ...f, scores: next };
+      }),
     }));
 
   const delFeature = (id) =>
@@ -16917,13 +17908,17 @@ function FeatureTab({ project, patch }) {
     });
 
   const scores = project.services.map((s) => computeScore(project, s.id));
-  const maxScore = Math.max(...scores.map((s) => s.score));
+  // «최고» 는 탈락 안과 점수를 하나도 안 매긴 안을 빼고 고른다.
+  const maxScore = tccMax(
+    scores.filter((sc, i) => isServiceActive(project.services[i]) && sc.rated > 0).map((sc) => sc.score)
+  );
 
   return (
     <div className="tcc-pane">
       <p className="tcc-lead">
         중요도는 1에서 5까지, 각 후보의 점수도 0에서 5까지 매깁니다. 중요도가 높은 항목의 점수가
-        총점에 더 크게 반영됩니다.
+        총점에 더 크게 반영됩니다. 켜진 점수를 한 번 더 누르면 빈칸(미채점)으로 돌아가고,
+        빈칸은 총점에서 빠집니다(매긴 항목만으로 100점 환산).
       </p>
 
       <div className="tcc-tablewrap">
@@ -16993,10 +17988,15 @@ function FeatureTab({ project, patch }) {
                         <button
                           key={n}
                           className={
-                            "tcc-dot" + (Number(f.scores[s.id]) === n ? " is-on" : "")
+                            "tcc-dot" +
+                            (!isScoreUnset(f.scores[s.id]) && Number(f.scores[s.id]) === n ? " is-on" : "")
                           }
                           onClick={() => updScore(f.id, s.id, n)}
-                          title={n + "점"}
+                          title={
+                            !isScoreUnset(f.scores[s.id]) && Number(f.scores[s.id]) === n
+                              ? n + "점 · 한 번 더 누르면 빈칸(미채점)"
+                              : n + "점"
+                          }
                         >
                           {n}
                         </button>
@@ -17011,9 +18011,8 @@ function FeatureTab({ project, patch }) {
                   <button className="tcc-mini" onClick={() => moveFeature(f.id, 1)} title="아래로">
                     ↓
                   </button>
-                  <button className="tcc-mini tcc-mini-del" onClick={() => delFeature(f.id)}>
-                    ×
-                  </button>
+                  <ConfirmButton className="tcc-mini tcc-mini-del" label="×" confirmLabel="삭제"
+                    title="삭제" onConfirm={() => delFeature(f.id)} />
                 </td>
               </tr>
             ))}
@@ -17021,12 +18020,19 @@ function FeatureTab({ project, patch }) {
           <tfoot>
             <tr className="tcc-sum tcc-sum-strong">
               <td colSpan={2}>가중 총점 (100점 만점)</td>
-              {scores.map((sc, i) => (
-                <td key={i} className={"tcc-num" + (sc.score === maxScore ? " is-best" : "")}>
-                  {sc.score.toFixed(1)}
-                  {sc.score === maxScore && <span className="tcc-badge">최고</span>}
-                </td>
-              ))}
+              {scores.map((sc, i) => {
+                const best = maxScore !== null && sc.rated > 0 &&
+                  isServiceActive(project.services[i]) && sc.score === maxScore;
+                return (
+                  <td key={i} className={"tcc-num" + (best ? " is-best" : "")}>
+                    {sc.rated > 0 ? sc.score.toFixed(1) : "미채점"}
+                    {best && <span className="tcc-badge">최고</span>}
+                    {sc.rated > 0 && sc.unrated > 0 && (
+                      <span className="tcc-unrated">미채점 {sc.unrated}개 제외</span>
+                    )}
+                  </td>
+                );
+              })}
               <td></td>
             </tr>
           </tfoot>
@@ -17062,30 +18068,22 @@ function ResultTab({ project, patch }) {
   const [promptText, setPromptText] = useState("");
   const [err, setErr] = useState("");
 
-  const rows = project.services.map((s) => {
-    const c = computeService(project, s.id);   // c.deposit 은 총비용에 안 들어간다(회수되는 돈)
-    const sc = computeScore(project, s.id);
-    return {
-      id: s.id,
-      name: s.name,
-      total: c.total,
-      perMonth: c.perMonth,
-      once: c.once,
-      // ★ 카드와 AI 프롬프트가 이 값을 읽는다. 여기 빠뜨리면 화면에서 조용히 사라진다
-      //   (2026-08-24 실제로 빠뜨렸다 — 비용표 탭은 computeService 결과를 직접 써서
-      //    정상이었고 결론 탭 카드만 안 떴다).
-      deposit: c.deposit,
-      score: sc.score,
-      efficiency: sc.score > 0 ? c.total / sc.score : Infinity,
-    };
-  });
-
-  const minTotal = Math.min(...rows.map((r) => r.total));
-  const maxScore = Math.max(...rows.map((r) => r.score));
-  const minEff = Math.min(...rows.map((r) => r.efficiency));
+  /* 슬라이더는 «저장 안 되는 임시값» 이다(2026-10-22 · 예전엔 실제 가정값을 고쳐 저장했다).
+     { id, x } — 기준 값을 바꾸면 id 가 안 맞아 저절로 풀린다. */
+  const [sim, setSim] = useState(null);
 
   /* 시뮬레이션 데이터 */
   const sweepVar = sweepable.find((v) => v.id === sweepVarId) || sweepable[0] || null;
+  const simOn = !!(sim && sweepVar && sim.id === sweepVar.id);
+  const viewProject = simOn
+    ? { ...project, vars: project.vars.map((v) => (v.id === sim.id ? { ...v, value: sim.x } : v)) }
+    : project;
+
+  // 카드는 임시값을 반영한 값 · AI 프롬프트는 저장된 값(baseRows)을 쓴다.
+  // 판정 규칙은 tccJudge 한 곳 — 요약 탭도 같은 것을 쓴다.
+  const J = tccJudge(viewProject);
+  const { rows, judged, minTotal, maxScore, pickMin, pickTotal, isPick } = J;
+  const baseRows = simOn ? tccRows(project) : rows;
   const sweep = useMemo(() => {
     if (!sweepVar) return null;
     const min = Number(sweepVar.min) || 0;
@@ -17128,21 +18126,30 @@ function ResultTab({ project, patch }) {
     project.costItems.forEach((it) => {
       const cy = CYCLES.find((c) => c.key === it.cycle);
       const per = project.services
-        .map((s) => s.name + " " + won(evalCell(it.values[s.id], rvars).value) + "원")
+        .map((s) => {
+          const tt = [
+            it.cycle === "deposit" ? "" : termsText(itemTerms(it, s.id), it.cycle),
+            quoteOf(it, s.id).date ? "견적일 " + quoteOf(it, s.id).date : "",
+          ].filter(Boolean).join(" · ");
+          return s.name + " " + won(evalCell(it.values[s.id], rvars).value) + "원" + (tt ? "(" + tt + ")" : "");
+        })
         .join(" / ");
       lines.push("- " + it.label + " (" + (cy ? cy.label : "") + "): " + per + (it.note ? " · 메모: " + it.note : ""));
     });
     lines.push("");
     lines.push("[총계]");
-    rows.forEach((r) =>
+    baseRows.forEach((r) =>
       lines.push(
-        "- " + r.name + ": 월 환산 " + won(r.perMonth) + "원, 1회성 " + won(r.once) +
+        "- " + r.name + (r.active ? "" : " (탈락·종료 — 비교 판정에서 제외)") +
+        ": 월 환산 " + won(r.perMonth) + "원, 1회성 " + won(r.once) +
         "원, " + project.horizonMonths + "개월 총 " + won(r.total) + "원, 기능 총점 " +
-        r.score.toFixed(1) + "점" +
+        (r.rated > 0 ? r.score.toFixed(1) + "점" : "미채점") +
+        (r.rated > 0 && r.unrated > 0 ? "(미채점 " + r.unrated + "개 항목 제외하고 환산)" : "") +
+        (r.commit > 0 ? ", 약정 " + r.commit + "개월" + (r.commitOver ? "(비교 기간보다 길어 약정 끝까지 총비용에 포함)" : "") : "") +
         (r.deposit > 0 ? ", 회수 예정 " + won(r.deposit) + "원(나중에 돌려받는 돈이라 총비용에 넣지 않음)" : "")
       )
     );
-    if (rows.some((r) => r.deposit > 0)) {
+    if (baseRows.some((r) => r.deposit > 0)) {
       lines.push("");
       lines.push("※ '회수 예정' 은 보증금·예치금처럼 나중에 돌려받는 돈이라 총비용에서 뺐습니다. "
         + "다만 그만큼 초기 자금이 묶이므로, 이 금액이 큰 안은 그 부담을 함께 언급하세요.");
@@ -17150,7 +18157,9 @@ function ResultTab({ project, patch }) {
     lines.push("");
     lines.push("[기능 평가 상세] (중요도 1-5, 점수 0-5)");
     project.featureItems.forEach((f) => {
-      const per = project.services.map((s) => s.name + " " + f.scores[s.id]).join(" / ");
+      const per = project.services
+        .map((s) => s.name + " " + (isScoreUnset(f.scores[s.id]) ? "미채점" : f.scores[s.id]))
+        .join(" / ");
       lines.push("- " + f.label + " (중요도 " + f.weight + "): " + per);
       if (f.desc) lines.push("    평가 기준: " + f.desc);
     });
@@ -17267,13 +18276,42 @@ function ResultTab({ project, patch }) {
 
   return (
     <div className="tcc-pane">
+      <div className="tcc-inline tcc-pickrule">
+        <span className="tcc-unit">가성비 기준</span>
+        <span>기능</span>
+        <input
+          className="tcc-in tcc-in-num tcc-pickmin"
+          type="number"
+          min={0}
+          max={100}
+          step={5}
+          value={project.pickMinScore === undefined ? 60 : project.pickMinScore}
+          onChange={(e) => patch(() => ({ pickMinScore: e.target.value }))}
+        />
+        <span>점 이상인 안 중 총비용이 가장 낮은 안</span>
+        {pickTotal === null && judged.length > 0 && (
+          <span className="tcc-warnline">· 기능 {pickMin}점 이상인 안이 없습니다</span>
+        )}
+      </div>
+      {simOn && (
+        <div className="tcc-simbar">
+          <span>
+            임시값으로 보는 중 — <b>{sweepVar.label} {Number(sim.x).toLocaleString("ko-KR")} {sweepVar.unit}</b>
+            {" "}(저장된 값 {Number(sweepVar.value).toLocaleString("ko-KR")} {sweepVar.unit}) · 저장되지 않습니다
+          </span>
+          <button className="tcc-btn" onClick={() => setSim(null)}>원래 값으로</button>
+        </div>
+      )}
       <div className="tcc-cards">
         {rows.map((r) => (
           <div
             key={r.id}
-            className={"tcc-card" + (r.efficiency === minEff ? " is-pick" : "")}
+            className={"tcc-card" + (isPick(r) ? " is-pick" : "") + (r.active ? "" : " is-dropped")}
           >
-            <div className="tcc-card-name">{r.name}</div>
+            <div className="tcc-card-name">
+              {r.name}
+              {!r.active && <span className="tcc-card-state">탈락 · 종료 — 판정 제외</span>}
+            </div>
             <div
               className="tcc-card-total"
               style={{ fontSize: tccTotalFont(wonKo(r.total)) }}
@@ -17297,17 +18335,20 @@ function ResultTab({ project, patch }) {
               </div>
               <div>
                 <dt>기능 총점</dt>
-                <dd>{r.score.toFixed(1)}점</dd>
+                <dd>{r.rated > 0 ? r.score.toFixed(1) + "점" : "미채점"}</dd>
               </div>
               <div>
                 <dt>1점당 비용</dt>
-                <dd>{isFinite(r.efficiency) ? won(r.efficiency) + "원" : "-"}</dd>
+                <dd>{r.rated > 0 && isFinite(r.efficiency) ? won(r.efficiency) + "원" : "-"}</dd>
               </div>
             </dl>
+            {r.rated > 0 && r.unrated > 0 && (
+              <div className="tcc-unrated">미채점 {r.unrated}개 — 매긴 항목만으로 환산한 점수입니다</div>
+            )}
             <div className="tcc-card-flags">
-              {r.total === minTotal && <span className="tcc-flag">비용 최저</span>}
-              {r.score === maxScore && <span className="tcc-flag">기능 최고</span>}
-              {r.efficiency === minEff && <span className="tcc-flag tcc-flag-pick">가성비 최고</span>}
+              {r.active && minTotal !== null && r.total === minTotal && <span className="tcc-flag">비용 최저</span>}
+              {r.active && r.rated > 0 && maxScore !== null && r.score === maxScore && <span className="tcc-flag">기능 최고</span>}
+              {isPick(r) && <span className="tcc-flag tcc-flag-pick">가성비 최고</span>}
             </div>
           </div>
         ))}
@@ -17335,10 +18376,12 @@ function ResultTab({ project, patch }) {
           <SweepChart
             sweep={sweep}
             services={project.services}
-            currentX={Number(sweepVar.value)}
+            currentX={simOn ? Number(sim.x) : Number(sweepVar.value)}
             unit={sweepVar.unit}
             label={sweepVar.label}
           />
+          {/* 움직여도 저장하지 않는다 — 위 카드만 임시값으로 다시 계산한다.
+              실제 값을 바꾸려면 비용표·설정 탭의 가정값을 고친다. */}
           <div className="tcc-inline tcc-slider-wrap">
             <input
               className="tcc-slider"
@@ -17346,19 +18389,14 @@ function ResultTab({ project, patch }) {
               min={sweep.min}
               max={sweep.max}
               step={sweepVar.step || 1}
-              value={Number(sweepVar.value)}
-              onChange={(e) =>
-                patch((p) => ({
-                  vars: p.vars.map((v) =>
-                    v.id === sweepVar.id ? { ...v, value: e.target.value } : v
-                  ),
-                }))
-              }
+              value={simOn ? Number(sim.x) : Number(sweepVar.value)}
+              onChange={(e) => setSim({ id: sweepVar.id, x: Number(e.target.value) })}
             />
             <span className="tcc-slider-val">
-              {Number(sweepVar.value).toLocaleString("ko-KR")} {sweepVar.unit}
+              {(simOn ? Number(sim.x) : Number(sweepVar.value)).toLocaleString("ko-KR")} {sweepVar.unit}
             </span>
           </div>
+          <p className="tcc-hint">슬라이더는 보기만 바꿉니다 — 저장되지 않고, 탭을 옮기면 원래 값으로 돌아갑니다.</p>
         </Section>
       )}
 
@@ -17421,7 +18459,9 @@ function ResultTab({ project, patch }) {
 }
 
 /* ---------- 시뮬레이션 차트 ---------- */
-function SweepChart({ sweep, services, currentX, unit, label }) {
+/* currentX 가 null 이면 «지금» 선을 안 그린다(비용표의 월별 흐름). hint 로 아래 설명을 바꾼다. */
+function SweepChart({ sweep, services, currentX, unit, label, hint }) {
+  const hasNow = currentX !== null && currentX !== undefined && isFinite(currentX);
   const W = 720;
   const H = 260;
   const P = { t: 16, r: 16, b: 34, l: 68 };
@@ -17449,13 +18489,15 @@ function SweepChart({ sweep, services, currentX, unit, label }) {
             </g>
           );
         })}
-        <line
-          x1={sx(currentX)}
-          y1={P.t}
-          x2={sx(currentX)}
-          y2={H - P.b}
-          className="tcc-nowline"
-        />
+        {hasNow && (
+          <line
+            x1={sx(currentX)}
+            y1={P.t}
+            x2={sx(currentX)}
+            y2={H - P.b}
+            className="tcc-nowline"
+          />
+        )}
         {services.map((s, si) => {
           const d = sweep.points
             .map((p, i) => (i === 0 ? "M" : "L") + sx(p.x) + " " + sy(p.ys[si]))
@@ -17476,9 +18518,17 @@ function SweepChart({ sweep, services, currentX, unit, label }) {
         <text x={W - P.r} y={H - 12} className="tcc-axis" textAnchor="end">
           {Math.round(sweep.max).toLocaleString("ko-KR")} {unit}
         </text>
-        <text x={sx(currentX)} y={P.t - 4} className="tcc-axis tcc-axis-now" textAnchor="middle">
-          지금 {Math.round(currentX).toLocaleString("ko-KR")}
-        </text>
+        {hasNow && (
+          // 양 끝에서는 글자가 차트 밖으로 잘리지 않게 붙는 쪽을 바꾼다.
+          <text
+            x={sx(currentX)}
+            y={P.t - 4}
+            className="tcc-axis tcc-axis-now"
+            textAnchor={sx(currentX) > W - 70 ? "end" : sx(currentX) < P.l + 40 ? "start" : "middle"}
+          >
+            지금 {Math.round(currentX).toLocaleString("ko-KR")}
+          </text>
+        )}
       </svg>
       <div className="tcc-legend">
         {services.map((s, si) => (
@@ -17489,7 +18539,7 @@ function SweepChart({ sweep, services, currentX, unit, label }) {
         ))}
       </div>
       <p className="tcc-hint">
-        가로축은 {label}, 세로축은 총비용입니다. 선이 서로 교차하는 지점이 유불리가 뒤집히는 값입니다.
+        {hint || "가로축은 " + label + ", 세로축은 총비용입니다. 선이 서로 교차하는 지점이 유불리가 뒤집히는 값입니다."}
       </p>
     </div>
   );
@@ -17584,7 +18634,8 @@ function HistoryTab({ project, patch, me }) {
 
   const addLog = () => {
     if (!logDraft.text.trim()) return;
-    patch((p) => ({ logs: [{ id: uid(), ...logDraft }, ...p.logs] }));
+    // 작성자는 로그인 계정 — 편집자 표시(patch)와 같은 값을 쓴다. 옛 기록은 작성자 없이 남는다.
+    patch((p) => ({ logs: [{ id: uid(), ...logDraft, by: me || "" }, ...p.logs] }));
     setLogDraft({ date: todayStr(), type: "update", text: "" });
   };
 
@@ -17912,10 +18963,12 @@ function HistoryTab({ project, patch, me }) {
                 <li key={l.id} className="tcc-logitem">
                   <span className="tcc-logdate">{l.date}</span>
                   <span className={"tcc-logtag tcc-logtag-" + l.type}>{t ? t.label : l.type}</span>
-                  <span className="tcc-logbody">{l.text}</span>
-                  <button className="tcc-x" onClick={() => delLog(l.id)}>
-                    ×
-                  </button>
+                  <span className="tcc-logbody">
+                    {l.text}
+                    {l.by && <span className="tcc-logby">{l.by}</span>}
+                  </span>
+                  <ConfirmButton className="tcc-x" label="×" confirmLabel="삭제" title="삭제"
+                    onConfirm={() => delLog(l.id)} />
                 </li>
               );
             })}
@@ -18242,6 +19295,7 @@ function Dashboard({ projects, onOpen }) {
                     </button>
                     {" · "}
                     {l.text}
+                    {l.by && <span className="tcc-logby">{l.by}</span>}
                   </span>
                 </li>
               );
@@ -18527,7 +19581,7 @@ const CSS = `
     minmax(0, var(--tcc-vval, 110px))  /* 숫자 또는 = 식 — 가장 긴 값에 맞춘 공유 폭 */
     minmax(0, 70px)                    /* 단위 */
     minmax(0, auto)                    /* → 계산 결과 (식이 없는 줄은 빈 칸) */
-    auto auto auto auto;               /* 범위 · ↑ · ↓ · × */
+    auto auto;                         /* 범위 · ↑↓× 묶음 */
   align-items: center;
   justify-content: start;
   gap: 8px;
@@ -18577,7 +19631,9 @@ const CSS = `
      '.tcc-th-svc' 하나만으로는 nowrap 이 안 풀린다(뒤에 써도 소용없다). */
 .tcc-th-svc { min-width: 150px; }
 .tcc-table th.tcc-th-svc { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; vertical-align: bottom; }
-.tcc-th-tool { width: 92px; }
+/* ↑ ↓ × 한 줄 — 29+29+38(삭제 확인 글자)+여백 = 129px 실측 → 136px. 비용표·기능 평가·가정값 공통. */
+.tcc-th-tool { width: 136px; }
+.tcc-td-tool { white-space: nowrap; }
 .tcc-table td { padding: 9px 12px; border-bottom: 1px solid var(--line2); vertical-align: top; }
 .tcc-table tbody tr:hover { background: var(--tcc-hover); }
 .tcc-cellin { width: 100%; border: 1px solid transparent; background: none; font-family: inherit; font-size: 13px; padding: 5px 7px; border-radius: 4px; color: var(--ink); }
@@ -18598,7 +19654,7 @@ const CSS = `
 .tcc-table-cost { table-layout: fixed; }
 .tcc-table-cost .tcc-th-item { width: 268px; }
 .tcc-table-cost .tcc-th-cycle { width: 96px; }
-.tcc-table-cost .tcc-th-tool { width: 96px; }
+/* ↑ ↓ × 를 한 줄로 — 잰 값: 단추 29+29+38(«삭제» 로 바뀐 때)+간격 3×3 + 칸 여백 24 = 129 → 136 (2026-10-22 제니) */
 .tcc-table-cost td, .tcc-table-cost th { overflow-wrap: anywhere; }
 .tcc-mini { font-size: 11.5px; min-width: 28px; padding: 0 8px; border: 1px solid var(--line); background: none; color: var(--ink2); margin-right: 3px; }
 .tcc-mini:hover { border-color: var(--ink2); color: var(--ink); }
@@ -18617,6 +19673,63 @@ const CSS = `
 .tcc-dot { width: 24px; height: 24px; border: 1px solid var(--line); background: none; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink2); cursor: pointer; }
 .tcc-dot:hover { border-color: var(--accent); }
 .tcc-dot.is-on { background: var(--tcc-fill); border-color: var(--tcc-fill); color: #fff; font-weight: 700; }
+/* 미채점 · 탈락 · 임시값 · 가성비 기준 (2026-10-22) */
+.tcc-unrated { display: block; margin-top: 3px; font-family: inherit; font-size: 10.5px; font-weight: 500; color: var(--ink2); white-space: normal; }
+.tcc-card .tcc-unrated { margin-top: 8px; font-size: 11px; }
+.tcc-card.is-dropped { opacity: .55; }
+.tcc-card-state { display: block; margin-top: 3px; font-size: 10.5px; font-weight: 500; color: var(--ink2); }
+.tcc-pickrule { flex-wrap: wrap; gap: 6px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink2); }
+.tcc-pickrule .tcc-pickmin { width: 64px; text-align: center; }
+/* 견적 조건 (2026-10-22) — 칸 아래 한 줄 + 펼치는 작은 판 */
+.tcc-termsbtn { display: block; margin: 4px 0 0 auto; padding: 1px 6px; border: 1px dashed var(--line); border-radius: 4px; background: none; font-family: inherit; font-size: 10.5px; color: var(--ink2); cursor: pointer; text-align: right; white-space: normal; max-width: 100%; }
+.tcc-termsbtn:hover { border-color: var(--accent); color: var(--ink); }
+.tcc-termsbtn.is-on { border-style: solid; border-color: var(--accent); color: var(--accent); }
+.tcc-terms { margin-top: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--tcc-soft); display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; color: var(--ink2); text-align: left; }
+.tcc-terms-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tcc-terms-row input[type=checkbox] { margin: 0 2px 0 0; }
+.tcc-terms-note { font-size: 10.5px; color: var(--ink2); }
+.tcc-terms-acts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.tcc-root .tcc-terms-in { width: 56px; height: 24px; padding: 0 4px; font-size: 11.5px; text-align: center; }
+.tcc-terms-h { font-size: 10.5px; font-weight: 700; color: var(--ink); letter-spacing: .02em; }
+.tcc-terms-h ~ .tcc-terms-h { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tcc-root .tcc-quote-in { width: 100%; height: 26px; font-size: 11.5px; padding: 0 6px; text-align: left; }
+.tcc-root .tcc-quote-date { width: 128px; height: 24px; font-size: 11.5px; padding: 0 4px; }
+.tcc-quote-file { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.tcc-quote-file .tcc-linkbtn { text-align: left; overflow-wrap: anywhere; }
+.tcc-quote-up { align-self: flex-start; height: 26px; font-size: 11.5px; cursor: pointer; }
+.tcc-quote-up.is-busy { opacity: .6; cursor: default; }
+.tcc-logby { margin-left: 8px; font-size: 11px; color: var(--ink2); }
+/* 요약 탭 (2026-10-22) — 화면에서도 인쇄에서도 같은 판. 인쇄 창은 data-theme="light" */
+.tcc-report { display: flex; flex-direction: column; gap: 18px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); max-width: 980px; }
+.tcc-rep-head { border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+.tcc-rep-kicker { font-size: 11px; letter-spacing: .08em; color: var(--ink2); font-weight: 700; }
+.tcc-rep-title { margin: 2px 0 4px; font-size: 22px; font-weight: 800; color: var(--ink); }
+.tcc-rep-meta { font-size: 12px; color: var(--ink2); }
+.tcc-rep-sec h2 { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.tcc-rep-sub { margin-left: 6px; font-size: 11px; font-weight: 400; color: var(--ink2); }
+.tcc-rep-verdict { padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--tcc-soft); border-radius: 4px; }
+.tcc-rep-verdict p { margin: 2px 0; font-size: 13px; color: var(--ink); }
+.tcc-report { -webkit-print-color-adjust: exact; print-color-adjust: exact; }   /* 범례 색 칸이 인쇄에서 빠지지 않게 */
+.tcc-rep-table { width: 100%; font-size: 12px; table-layout: auto; }
+.tcc-rep-table th, .tcc-rep-table td { padding: 6px 8px; vertical-align: top; }
+/* 첫 칸(안·항목 이름)이 눌려 한두 글자씩 꺾이던 것 — 바닥 폭을 준다(10-22 PDF 로 확인) */
+.tcc-rep-table th:first-child, .tcc-rep-table td:first-child { min-width: 170px; width: 30%; }
+.tcc-rep-table th { font-family: inherit; letter-spacing: normal; white-space: normal; }
+.tcc-rep-table th:nth-child(2), .tcc-rep-table td:nth-child(2) { white-space: nowrap; }   /* 주기 «1회성»·중요도 */
+.tcc-rep-table tr.is-dropped td { opacity: .6; }
+.tcc-rep-line { margin: 0; font-size: 12.5px; color: var(--ink); }
+.tcc-rep-logs { margin: 0; padding-left: 16px; font-size: 12px; color: var(--ink); display: flex; flex-direction: column; gap: 3px; }
+.tcc-rep-chart .tcc-chart { max-width: 720px; }
+@media print {
+  .tcc-report { border: none; padding: 0; max-width: none; }
+  /* 표는 쪽을 넘어가도 되고(통째로 넘기면 빈 쪽이 생긴다), 결론 띠·차트·줄만 안 자른다 */
+  .tcc-rep-verdict, .tcc-rep-chart, .tcc-rep-table tr { break-inside: avoid; }
+  .tcc-rep-sec h2 { break-after: avoid; }
+  .tcc-rep-table { font-size: 10.5px; }
+}
+.tcc-commit { display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
+.tcc-sum-sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--ink2); }
+.tcc-simbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: var(--tcc-soft); font-size: 12.5px; }
 
 .tcc-rowactions { display: flex; gap: 8px; flex-wrap: wrap; }
 .tcc-guide { background: var(--tcc-soft); border-left: 3px solid var(--accent); padding: 13px 16px; border-radius: 0 5px 5px 0; }
@@ -36481,13 +37594,14 @@ function App() {
     if(!isMaster) return;
     let alive=true;
     (async()=>{
-      const {data,error}=await sb.from('cost_store').select('value')
-        .eq('store_key',SHARED_KEY).eq('scope','shared').maybeSingle();
-      if(!alive||error||!data||!data.value) return;
-      let box=null;
-      try{ box=JSON.parse(data.value); }catch(e){ return; }
-      const list=box&&Array.isArray(box.projects)?box.projects:[];
-      if(!list.length) return;
+      // 2026-10-22 — 저장 구조 v2(프로젝트마다 한 줄)를 먼저 보고, 아직 옮기기 전이면 옛 한 줄을 본다.
+      let list=[];
+      try{
+        const all=await tccReadAll(true);   // 조용히 — 사이드바가 늦게 차는 것뿐이다
+        list=(all.meta||all.prows.length) ? all.prows.map(r=>r.project)
+          : (all.v1&&Array.isArray(all.v1.projects) ? all.v1.projects : []);
+      }catch(e){ return; }
+      if(!alive||!list.length) return;
       setCostState(prev=>prev.list.length?prev:({...prev,
         list:list.map(p=>({id:p.id,name:p.name,endsAt:p.contract?p.contract.endsAt:''}))}));
     })();
