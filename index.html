@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- v20261103d_draft_inquiry_tpl -->
+<!-- (2026-11-03) [dev→prod 이식] ✉ 공급사 접수 문안 «문의용» 틀(제니: 「"문의" 방향일 때 공급사 접수 문안에서는 수량을 빼고 싶은데, 문안을 구분해서 작성할 수 있을까?」). CS 설정 › 접수 문안에 [기본 문안 | 문의용 문안] 탭 — 문의용을 처음 열면 기본에서 «수량» 든 열·변수를 뺀 것으로 시작(csInqFrom) · 저장하면 cs_draft_templates.value.inquiry 에 담긴다(없으면 기본을 쓴다 · «문의용 문안 쓰지 않기» 로 지움). 쓰는 때 = 담긴 건이 «모두» 방향 문의(csWithInquiry · 섞이면 기본). 상세·등록 버튼(csDraftFor)·공급사 접수 메뉴 미리보기·복사 전부. 카페24 연동 어긋남 경고도 두 틀을 함께 본다. ★ 등록 화면 «주문 없는 상품 문의는 … 문의로 고르면» 안내 한 줄은 뺐다(제니). SQL 없음(설정 jsonb 안 키 하나). -->
+<!-- v20261103c_ticket_no_order_inquiry -->
+<!-- (2026-11-03) [dev→prod 이식] 🎫 주문 없는 «문의» 티켓(제니: 「주문 없이 단순 상품 문의인 경우에는 주문 번호 없이 티켓이 끊겨야」 · 조건 = 방향이 «문의» 일 때만 · 대신 = 상품 검색 + 고객 직접 입력). 등록 화면: 방향 «문의» + 주문 안 불러옴 → noOrder. ①주문번호 칸 별표 대신 «비워도 됩니다» · 그 밖엔 «문의로 고르면 주문번호 없이» 안내 한 줄 ②«문의 상품» 칸(products 를 이름·코드로 찾기 · 고르면 공급사·③ 상품 CS 정보) ③고객 이름·연락처 입력(비워도 됨) ④필수 = 상품 + 설정의 «만들 때» 중 주문이 주던 칸(품목·수량·공급사·주문자·수령인·배송지·담당자) 뺀 것 ⑤저장 = 티켓 하나(order_id·order_item_code null · group_key null · cs_qty 1 · 스냅샷 {}) — 이력·이동은 보통 길 그대로 ⑥공급사 접수 문안·매크로 치환자도 그 상품으로(noRowOf). 상세 머리줄은 «주문 없음». ★ DB: claude-cs-backup `sql/cs_ticket_no_order_inquiry.sql`(not null 해제 · 문의 조건은 DB 에 안 건다 — 상세에서 방향을 바꾸면 알 수 없는 제약 오류로 막히므로) → 운영은 SQL 먼저. -->
+<!-- v20261103b_type_product_dir_inquiry -->
+<!-- (2026-11-03) [dev→prod 이식] 티켓 «유형» 에 「상품」(기타 앞) · «방향» 에 「문의」(맨 뒤) 추가(제니). CS_TYPES·CS_DIRECTIONS 한 곳 + CS 통계 색(상품 #3E63DD · 문의 #12A594). 등록·상세·일괄·목록 필터·CS 통계·칸 설정이 이 목록을 그대로 쓴다. ★ DB check 제약과 짝 — claude-cs-backup `sql/cs_type_dir_add_product_inquiry.sql` 을 운영에 «먼저» 돌릴 것(화면만 가면 저장이 막힌다). 환불 사유(refund_reasons)·FAQ 유형은 따로 체계라 안 건드림. -->
 <!-- v20261103a_draft_head_vars -->
 <!-- (2026-11-03) [dev→prod 이식] 🐞 공급사 접수 문안 — 메일 «제목»·메신저 «머리말» 의 변수가 «—» 로 나오던 것(제니 제보: 제목에 {주문자명(수령인명)} 을 넣었는데 적용이 안 되고 - 로 나온다). 원인: 두 자리를 티켓 없이(null) 채워 {날짜} 말고는 전부 «빈 티켓» 값이었다. → 새 csFillHead(str, rows, ev) 가 담긴 건으로 채운다: 한 건이면 그 값 · 여러 건이 같은 값이면 그 값 · 갈리면 앞의 둘 + 「외 N」 · 값이 없으면 「—」 · 여러 줄 값은 한 줄로. {날짜} 는 그대로. 쓰는 곳 전수: csDraftMailPlain·csDraftMailHtml·csDraftMessenger·공급사 접수 미리보기·설정 미리보기(견본 건). ★ 같이 고친 것: 공급사 접수 메뉴(CsSupplierDraft)의 «복사» 와 «메신저 미리보기» 가 events 를 안 넘겨 «접수 사유» 가 복사한 글에서 빠졌다(화면 표에는 보였다) → events 를 넘긴다. 메일 «본문» 의 규칙({날짜} 만 바뀜)은 안 건드렸다. SQL 없음. -->
 <!-- v20261030b_ticket_leave_confirm -->
@@ -20066,13 +20072,13 @@ const CSS = `
 // ★★ 이 목록은 DB 의 check 제약과 «짝» 이다. 한쪽만 고치면 저장이 조용히 막힌다.
 // ★ 차례는 제니가 준 그대로다(2026-10-12) — 값은 그대로 두고 «차례만» 바꿨다(DB 제약은 집합이라 무관).
 const CS_TYPES = ['변심','품절','불만족','지연','불량','파손','오염','누락',
-                  '오배송','배송불가지역','기타'];
+                  '오배송','배송불가지역','상품','기타'];
 // ★ 「안내종결」을 없애고 「정산반영만」을 「정산 반영」으로 고쳤다(제니 2026-09-02).
 //   ★★ 이 목록은 DB check 제약과 «짝» 이다 — sql/cs_direction_update.sql 을 같이 돌린다.
 //     한쪽만 고치면 화면에서는 고를 수 있는데 저장이 조용히 막힌다.
 //   ★ 차례(2026-10-12 제니): 취소 · 반품 · 교환 · 환불 · 재출고 · 부분보상 · 정산 반영 · A/S.
 const CS_DIRECTIONS = ['취소','반품','교환','환불','재출고','부분보상',
-                       '정산 반영','A/S'];
+                       '정산 반영','A/S','문의'];
 // ── 우편번호 찾기 (카카오/다음 우편번호 서비스 · 2026-09-02 제니) ─────────
 // ★★ 스크립트를 «처음 누를 때» 불러온다. 처음부터 실으면 이 화면을 안 쓰는 사람도
 //   매번 내려받고, 그 스크립트가 죽는 날 콘솔 전체가 함께 죽는다. 2026-06-17 에
@@ -22249,11 +22255,11 @@ function CsRecheck({at, stage}){
 const CS_STAT_TYPE_COLOR = {
   '불량':'#E5484D','파손':'#F76B15','오염':'#D6A100','누락':'#8E4EC6','오배송':'#6E56CF',
   '지연':'#0090FF','배송불가지역':'#00A2C7','품절':'#12A594','변심':'#30A46C',
-  '불만족':'#E93D82','기타':'#8B8D98',
+  '불만족':'#E93D82','상품':'#3E63DD','기타':'#8B8D98',
 };
 const CS_STAT_DIR_COLOR = {
   '교환':'#0090FF','반품':'#E5484D','부분보상':'#F76B15','재출고':'#30A46C','환불':'#8E4EC6',
-  '정산 반영':'#D6A100','취소':'#8B8D98','A/S':'#00A2C7','(미정)':'#C4C7D0',
+  '정산 반영':'#D6A100','취소':'#8B8D98','A/S':'#00A2C7','문의':'#12A594','(미정)':'#C4C7D0',
 };
 const CS_STAT_NONE = '(미정)';
 // KST 날짜 «YYYY-MM-DD» — toISOString 은 UTC 라 새벽 9시 전 건이 전날로 간다.
@@ -25874,7 +25880,13 @@ function CsDraftTplSettings({currentUserEmail}){
   const c24On = useCsC24On();
   const [row,setRow]     = useState(null);
   const [loaded,setLoaded] = useState(false);
-  const [d,setD]         = useState(null);     // 고치는 중인 틀
+  // ★ 2026-11-03 — 틀이 둘이다: 기본(base) · 문의용(inquiry, 방향 «문의» 인 건 · 없으면 null = 기본을 쓴다).
+  //   화면은 한 번에 하나를 고친다(mode) — 아래 코드는 그대로 d/setD 만 본다.
+  const [all,setAll]     = useState(null);     // {base, inquiry}
+  const [mode,setMode]   = useState('base');
+  const tkey = mode==='inquiry' ? 'inquiry' : 'base';
+  const d = all ? all[tkey] : null;            // 고치는 중인 틀
+  const setD = (fn)=> setAll(p=>({...p, [tkey]: typeof fn==='function' ? fn(p[tkey]) : fn}));
   const [busy,setBusy]   = useState(false);
   const norm = (v)=>({
     mail_subject: (v&&v.mail_subject) || CS_DRAFT_TPL_DEFAULT.mail_subject,
@@ -25891,12 +25903,13 @@ function CsDraftTplSettings({currentUserEmail}){
     msg_lines: Array.isArray(v&&v.msg_lines) && v.msg_lines.length
       ? v.msg_lines.slice() : CS_DRAFT_TPL_DEFAULT.msg_lines.slice(),
   });
+  const normAll = (v)=>({base:norm(v), inquiry:(v && v.inquiry) ? norm(v.inquiry) : null});
   useEffect(()=>{ (async()=>{
     const r = await csLoadSetting('cs_draft_templates');
-    setRow(r); setD(norm(r && r.value)); setLoaded(true);
+    setRow(r); setAll(normAll(r && r.value)); setLoaded(true);
   })(); },[]);
 
-  if(!loaded || !d) return <div style={{fontSize:12,color:'var(--sub)',padding:'30px 0'}}>읽는 중…</div>;
+  if(!loaded || !all || !d) return <div style={{fontSize:12,color:'var(--sub)',padding:'30px 0'}}>읽는 중…</div>;
 
   const set = (k,v)=> setD(p=>({...p,[k]:v}));
   const setCol = (i,k,v)=> setD(p=>({...p, mail_cols:p.mail_cols.map((c,j)=>j===i?{...c,[k]:v}:c)}));
@@ -25927,15 +25940,17 @@ function CsDraftTplSettings({currentUserEmail}){
   // 표의 열에서 «지금 고를 수 있는» 값 — 카페24 값은 연동이 켜진 것만이다.
   const pickable = CS_DRAFT_VARS_ALL.filter(v=>!v.c24 || c24On.indexOf(v.c24)>=0);
 
-  const dirty = JSON.stringify(norm(row && row.value)) !== JSON.stringify(d);
+  const dirty = JSON.stringify(normAll(row && row.value)) !== JSON.stringify(all);
   const save = async ()=>{
-    const clean = {...d, msg_lines: d.msg_lines.filter(l=>String(l).length>0)};
+    const cleanOf = (t)=>({...t, msg_lines: t.msg_lines.filter(l=>String(l).length>0)});
+    const clean = cleanOf(all.base);
+    if(all.inquiry) clean.inquiry = cleanOf(all.inquiry);
     setBusy(true);
     const ok = await csSaveSetting('cs_draft_templates', clean, currentUserEmail);
     setBusy(false);
     if(!ok) return;
     setRow({value:clean, updated_at:new Date().toISOString(), updated_by:currentUserEmail});
-    setD(norm(clean));
+    setAll(normAll(clean));
     // ★ 저장하면 «지금 화면» 도 새 틀로 돌아야 한다 — 모듈 변수를 다시 읽는다.
     await csLoadDraftTpl();
     // ★ 저장은 막지 않는다 — 아직 연동을 안 켰을 뿐 «틀린 문안» 은 아니다.
@@ -25999,6 +26014,36 @@ function CsDraftTplSettings({currentUserEmail}){
             <br/>
             이 값들은 티켓에 <b>담기지 않아</b>, 그 치환자만 든 줄은 문안에서 <b>통째로 빠집니다</b>.
             <br/><b>CS 설정 &gt; 카페24 연동</b>에서 켜 주세요.
+          </div>
+        </div>
+      )}
+
+      {/* ── 기본 / 문의용 (2026-11-03 제니: 「"문의" 방향일 때 공급사 접수 문안에서는 수량을 빼고 싶다」) ── */}
+      <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:10,flexWrap:'wrap'}}>
+        {[['base','기본 문안'],['inquiry','문의용 문안 (방향 «문의»)']].map(([id,label])=>{
+          const on = mode===id;
+          return (
+            <div key={id} onClick={()=>{
+                if(id==='inquiry') setAll(p=>p.inquiry ? p : {...p, inquiry: csInqFrom(p.base)});
+                setMode(id);
+              }}
+              style={{padding:'5px 13px',borderRadius:14,fontSize:12,cursor:'pointer',userSelect:'none',
+                border:'1px solid '+(on?'var(--accent)':'var(--border)'),
+                background: on?'var(--accent)':'transparent',
+                color: on?'var(--on-accent)':'var(--sub)', fontWeight:on?700:400}}>{label}</div>
+          );
+        })}
+      </div>
+      {mode==='inquiry' && (
+        <div style={{...card, fontSize:11,color:'var(--text)',lineHeight:1.8}}>
+          방향이 <b>«문의»</b> 인 건에는 이 문안이 나갑니다(여러 건을 함께 보낼 땐 <b>모두 문의</b>일 때만).
+          처음엔 기본 문안에서 <b>수량</b>이 든 열·변수를 뺀 것으로 시작합니다 — <b>저장해야</b> 쓰입니다.
+          <div style={{marginTop:6}}>
+            <button type="button" disabled={busy}
+              onClick={()=>{ setAll(p=>({...p, inquiry:null})); setMode('base'); }}
+              style={{padding:'4px 11px',borderRadius:6,fontSize:11,fontFamily:'inherit',cursor:'pointer',
+                background:'transparent',border:'1px solid var(--border)',color:'var(--sub)'}}>
+              문의용 문안 쓰지 않기(기본 문안으로)</button>
           </div>
         </div>
       )}
@@ -26122,7 +26167,7 @@ function CsDraftTplSettings({currentUserEmail}){
             ? '마지막으로 바꾼 사람 '+csShortUser(row.updated_by)+' · '+csStamp(row.updated_at)
             : '아직 저장한 적이 없습니다 — 지금은 기본 문안으로 나갑니다.'}
         </div>
-        <button onClick={()=>setD(norm(null))} disabled={busy}
+        <button onClick={()=>setD(mode==='inquiry' ? csInqFrom(all.base) : norm(null))} disabled={busy}
           style={{padding:'7px 13px',borderRadius:7,fontSize:12,fontFamily:'inherit',
             background:'transparent',border:'1px solid var(--border)',
             color:'var(--sub)',cursor:'pointer'}}>기본값으로</button>
@@ -28293,10 +28338,35 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
   });
   const set = (k,v)=> setF(p=>({...p,[k]:v}));
   const setIF = (code,k,v)=> setItemF(p=>({...p,[code]:{...(p[code]||{}),[k]:v}}));
+  // ── 주문 없는 «문의» (2026-11-03 제니) ─────────────────────────────────────
+  // 「주문 없이 단순 상품 문의인 경우에는 주문 번호 없이 티켓이 끊겨야」 — **방향이 «문의» 일
+  //   때만** 주문번호를 비울 수 있다(제니가 고른 조건). 그때는 주문 대신 ①상품을 콘솔 상품
+  //   목록에서 고르고(공급사·상품 CS 정보가 따라온다) ②고객 이름·연락처를 사람이 적는다(비워도 된다).
+  // ★ 주문을 «불러왔으면» 보통 길이다 — 문의여도 주문이 있으면 주문에 붙는 편이 낫다.
+  // ★ 티켓은 하나만 만든다(묶음 없음) · order_id·order_item_code 는 null
+  //   (DB 는 sql/cs_ticket_no_order_inquiry.sql 로 not null 을 풀었다).
+  const [noProd,setNoProd] = useState(null);   // {product_code, product_name, supplier_name}
+  const [noCust,setNoCust] = useState({name:'', phone:''});
+  const [npq,setNpq]       = useState('');
+  const [npRes,setNpRes]   = useState([]);
+  const noOrder = f.direction==='문의' && !items.length;
+  useEffect(()=>{
+    const term = npq.trim().replace(/[,()%]/g,' ').trim();
+    if(term.length<2){ setNpRes([]); return; }
+    const timer = setTimeout(async ()=>{
+      const {data,error} = await sb.from('products')
+        .select('product_code,product_name,supplier_name')
+        .or(`product_code.ilike.%${term}%,product_name.ilike.%${term}%`)
+        .limit(10);
+      setNpRes(error ? [] : (data||[]));
+    },300);
+    return ()=>clearTimeout(timer);
+  },[npq]);
   // 작성 중 이탈 확인 — 주문번호를 적었거나·조회했거나·글/사진/이력 줄을 넣었거나·칸을 바꿨으면 «작성 중».
   const fInitRef = useRef(f);
   const leaveDone = useCsLeaveGuard(
     raw.trim() || items.length || draft.trim() || photos.length || notes.length
+    || noProd || noCust.name.trim() || noCust.phone.trim()
     || assignee!==currentUserEmail || JSON.stringify(f)!==JSON.stringify(fInitRef.current));
 
   // ★★ 카페24가 준 값은 «잠그고», 비어 있으면 사람이 채운다(제니 2026-09-02).
@@ -28368,7 +28438,8 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
   const chosen = items.filter(i=>sel.indexOf(i.code)>=0);
   // 접수 문안의 «형식» 을 정하는 값 — 고른 품목의 공급사 창구.
   // ★ 한 주문의 품목들은 대개 한 공급사다(묶음 판정도 그 전제로 서 있다).
-  const supChannel = useSupplierChannel(chosen.length ? chosen[0].supplier_name : null);
+  const supChannel = useSupplierChannel(chosen.length ? chosen[0].supplier_name
+    : (noOrder && noProd ? noProd.supplier_name : null));
   // ★ 넣은 글이 한눈에 보이게 칸을 늘린다 — 글이 바뀔 때마다 다시 잰다.
   useEffect(()=>{ csAutoGrow(noteRef.current); },[draft]);
   // ★★★ 메인 판정을 **화면과 저장이 함께 쓴다**(제니 2026-09-09: 「등록 화면에서 뜨는
@@ -28417,7 +28488,18 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
   //   값과 이력에 박히는 값이 갈린다.** 2026-09-09 에 그 어긋남을 고친 자리다.
   // ★ 접수 문안 단추는 그대로 «고른 품목 전부» 다 — 공급사는 여러 품목을 한 번에 받아야 한다.
   //   매크로는 이력에 남길 «한 문장» 이라 단위가 다르다.
-  const macroVars = ()=>({ t: mainItem ? draftRowOf(mainItem) : null, ev: draftEvs() });
+  // 주문 없는 문의의 «티켓처럼 생긴 것» — 저장할 줄(save)과 같은 칸을 담는다.
+  const noRowOf = ()=>({
+    id:'new', cs_type:f.cs_type, direction:f.direction,
+    order_id:null, order_item_code:null,
+    supplier_name: noProd ? (noProd.supplier_name||null) : null,
+    product_code:  noProd ? (noProd.product_code||null) : null,
+    product_name:  noProd ? (noProd.product_name||null) : null, option_name:null,
+    orderer_name: noCust.name.trim()||null, orderer_phone: noCust.phone.trim()||null,
+    order_qty:null, cs_qty:1, cafe24_snapshot:{},
+  });
+  const macroVars = ()=>({ t: mainItem ? draftRowOf(mainItem) : (noOrder ? noRowOf() : null),
+    ev: draftEvs() });
 
   // ★★★ 수령인·배송지는 «주문» 의 값이다 — 품목마다 갖지 않는다(제니 2026-09-03).
   //   「우리가 쓰는 카페24는 동일 주문번호 안의 품목별 주문번호가 같은 주문자·수령자·
@@ -28641,8 +28723,19 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
     }
   };
   const missing = [];
-  if(!chosen.length) missing.push('품목 선택');
-  csRequiredIds(fieldRules,'create').forEach(id=>{
+  // ★ 주문 없는 문의 — 품목 대신 «상품» 이 필수다(공급사가 거기서 온다). 주문이 주던 칸
+  //   (품목·수량·수령인·배송지·주문자)은 묻지 않는다: 채울 자리가 없는 칸을 필수로 두면
+  //   사람이 «-» 를 채운다(CS_REQ_OPTS 위 주석). 나머지 칸(접수 경로·유형 등)은 그대로 본다.
+  const NO_ORDER_SKIP = ['order_item_code','cs_qty','supplier_name','orderer_name','orderer_phone',
+    'receiver_name','receiver_phone','ship_address1','assignee'];
+  if(noOrder){
+    if(!noProd) missing.push('상품 선택');
+    csRequiredIds(fieldRules,'create').forEach(id=>{
+      if(NO_ORDER_SKIP.indexOf(id)>=0) return;
+      if(!String(f[id]||'').trim()) missing.push(csFieldLabel(id));
+    });
+  } else if(!chosen.length) missing.push('품목 선택');
+  if(!noOrder) csRequiredIds(fieldRules,'create').forEach(id=>{
     // 품목을 아직 안 골랐으면 «품목 선택» 한 줄로 족하다 — 딸린 칸을 줄줄이 세우면
     // 정작 먼저 할 일이 그 속에 묻힌다.
     if(id==='order_item_code' || !chosen.length) return;
@@ -28664,6 +28757,33 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
     setBusy(true);
     // ★★ 메인 판정은 **화면과 같은 것을 쓴다**(mainItem · 위에서 한 번만 가린다).
     //   여기 따로 적어 두었더니 화면은 «첫 품목», 저장은 «본품» 을 봐서 둘이 갈렸다.
+    let mrow, made;
+    if(noOrder){
+      // ★ 주문 없는 문의 — 티켓 하나. 칸은 아래 rowOf 와 같은 차례로 적는다(주문이 주던 칸만 빈다).
+      const row = {
+        order_id:null, order_item_code:null,
+        product_code: noProd.product_code||null, product_name: noProd.product_name||null,
+        option_name:null, supplier_name: noProd.supplier_name||null,
+        orderer_name: noCust.name.trim()||null, orderer_phone: noCust.phone.trim()||null,
+        pickup_zipcode: f.pickup_zipcode || null,
+        pickup_address1: f.pickup_address1 || null, pickup_address2: f.pickup_address2 || null,
+        order_qty:null, cs_qty:1,
+        intake_path: f.intake_path, cs_type: f.cs_type, direction: f.direction || null,
+        refund_amount: money(f.refund_amount),
+        refund_method: f.refund_method || null, refund_bank: f.refund_bank || null,
+        refund_holder: f.refund_holder || null,
+        refund_account: f.refund_account ? String(f.refund_account).replace(/\s/g,'') : null,
+        cost_bearer: f.cost_bearer || null,
+        settle_fee: money(f.settle_fee), settle_shipping_fee: money(f.settle_shipping_fee),
+        stage: st, recheck_at: recheck, group_key: null, prev_ticket_id: null,
+        assignee: assignee || currentUserEmail,
+        created_by: currentUserEmail, updated_by: currentUserEmail,
+        memo: f.memo || null, cafe24_snapshot: {},
+      };
+      const {data:nr,error:en} = await sb.from('cs_tickets').insert(row).select('id').single();
+      if(sbFail('티켓 만들기', en)){ setBusy(false); return; }
+      mrow = nr; made = [nr.id];
+    } else {
     const main = mainItem;
     const rest = sortedChosen.filter(i=>i.code!==main.code);
     // 같은 주문 + 같은 공급사 = 한 묶음. 서브가 없어도 묶음 키는 남긴다 —
@@ -28721,14 +28841,15 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
     };
 
     // 메인을 먼저 만든다 — 서브가 그 번호를 가리켜야 하기 때문이다.
-    const {data:mrow,error} = await sb.from('cs_tickets').insert(rowOf(main)).select('id').single();
+    const {data:mr,error} = await sb.from('cs_tickets').insert(rowOf(main)).select('id').single();
     if(sbFail('티켓 만들기', error)){ setBusy(false); return; }
-    let made = [mrow.id];
+    mrow = mr; made = [mr.id];
     if(rest.length){
       const {data:srows,error:e1} = await sb.from('cs_tickets')
         .insert(rest.map(it=>({...rowOf(it), main_ticket_id: mrow.id}))).select('id');
       if(sbFail('서브 티켓 만들기', e1)){ setBusy(false); return; }
       made = made.concat((srows||[]).map(r=>r.id));
+    }
     }
     // ★★ 이력은 «메인에만» 쌓는다. 양쪽에 복사하면 같은 사건이 두 번 찍힌다
     //   (환불 이력에서 이미 겪은 함정이다). 서브 화면은 메인의 이력을 함께 읽는다.
@@ -28966,7 +29087,10 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
             );
           })()}
           <div style={{marginBottom:10}}>
-            <label style={lbl}>주문번호 또는 품목별 주문번호{req}</label>
+            <label style={lbl}>주문번호 또는 품목별 주문번호
+              {f.direction==='문의'
+                ? <span style={{color:'var(--accent)'}}> · 방향이 «문의» 라 비워도 됩니다</span>
+                : req}</label>
             <div style={{display:'flex',gap:5}}>
               <input value={raw} onChange={e=>setRaw(e.target.value)}
                 onKeyDown={e=>{ if(e.key==='Enter') lookup(); }}
@@ -28983,6 +29107,53 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
                 color: msg.t==='ok'?'var(--green)':'var(--red)'}}>{msg.m}</div>
             )}
           </div>
+
+          {/* ── 주문 없는 문의 — 상품을 고른다 (2026-11-03) ───────────────────
+              ★ 고른 상품의 공급사가 티켓의 공급사가 된다 · 오른쪽 ③ 상품 CS 정보도 이 상품으로. */}
+          {noOrder && (
+            <div style={{marginBottom:11}}>
+              <label style={lbl}>문의 상품{req}</label>
+              {noProd ? (
+                <div style={{padding:'7px 9px',borderRadius:6,fontSize:11,
+                  border:'1px solid var(--primary)',background:'rgba(42,71,141,.22)',
+                  display:'flex',alignItems:'center',gap:7}}>
+                  <span style={{fontFamily:'monospace',color:'var(--accent)'}}>{noProd.product_code||'—'}</span>
+                  <span style={{flex:1,minWidth:0,wordBreak:'break-word'}}>{noProd.product_name||'—'}</span>
+                  <span style={{color:'var(--sub)'}}>{noProd.supplier_name||''}</span>
+                  <button type="button" onClick={()=>{ setNoProd(null); setCsInfo(null); }}
+                    title="다른 상품 고르기"
+                    style={{border:'none',background:'transparent',color:'var(--sub)',
+                      cursor:'pointer',fontSize:13,padding:'0 2px'}}>×</button>
+                </div>
+              ) : (<>
+                <input value={npq} onChange={e=>setNpq(e.target.value)}
+                  placeholder="상품명 또는 상품코드 (두 글자 이상)" style={inp}/>
+                {npRes.length>0 && (
+                  <div style={{border:'1px solid var(--border)',borderRadius:6,marginTop:4,
+                    maxHeight:220,overflowY:'auto'}}>
+                    {npRes.map(p=>(
+                      <div key={p.product_code} onClick={async ()=>{
+                          setNoProd(p); setNpq(''); setNpRes([]);
+                          const {data:d3} = await sb.from('products')
+                            .select('product_code,product_name,cs_info,memo,return_fee,return_fee_type,return_fee_text')
+                            .eq('product_code', p.product_code).limit(1);
+                          setCsInfo((d3||[])[0] || {ambiguous:0});
+                        }}
+                        style={{padding:'6px 9px',fontSize:11,cursor:'pointer',
+                          borderBottom:'1px solid var(--border)'}}>
+                        <span style={{fontFamily:'monospace',color:'var(--accent)',marginRight:7}}>{p.product_code}</span>
+                        {p.product_name}
+                        <span style={{marginLeft:7,color:'var(--sub)'}}>{p.supplier_name||''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {npq.trim().length>=2 && !npRes.length && (
+                  <div style={{fontSize:10.5,color:'var(--sub)',marginTop:4}}>찾는 중이거나 맞는 상품이 없습니다.</div>
+                )}
+              </>)}
+            </div>
+          )}
 
           {/* 품목 — 여럿 고를 수 있다. 같은 공급사만. */}
           {items.length>0 && (
@@ -29109,7 +29280,16 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
           <div style={sec}>고객</div>
           {head && ro('주문자', (head.customer_name||'')
             + (head.customer_phone?' · '+head.customer_phone:''))}
-          {!chosen.length && (
+          {/* 주문 없는 문의 — 고객은 사람이 적는다(비워도 된다). */}
+          {noOrder && (<>
+            {roRow('고객 이름', <input value={noCust.name} placeholder="비워도 됩니다"
+              onChange={e=>setNoCust(c=>({...c,name:e.target.value}))}
+              style={{...inp,fontSize:11.5,padding:'5px 7px'}}/>)}
+            {roRow('연락처', <input value={noCust.phone} placeholder="010-0000-0000"
+              onChange={e=>setNoCust(c=>({...c,phone:e.target.value}))}
+              style={{...inp,fontSize:11.5,padding:'5px 7px'}}/>)}
+          </>)}
+          {!chosen.length && !noOrder && (
             <div style={{fontSize:11,color:'var(--sub)',marginBottom:9}}>
               품목을 고르면 카페24 주문서의 수령인·배송지가 여기 나옵니다.</div>
           )}
@@ -29363,8 +29543,8 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
             <CsSymbolBar taRef={noteRef} value={draft} onChange={setDraft} light
               onSpace={setMacroSpace} vars={macroVars}
               right={
-                <button type="button" disabled={!chosen.length}
-                  title={chosen.length ? (supChannel==='email'
+                <button type="button" disabled={!chosen.length && !(noOrder && noProd)}
+                  title={(chosen.length || (noOrder && noProd)) ? (supChannel==='email'
                       ? '이 공급사는 메일 창구 — 제목+표로 넣습니다' : '메신저용 줄글로 넣습니다')
                     : '품목을 먼저 고르세요'}
                   onClick={async ()=>{
@@ -29381,7 +29561,7 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
                     //     저장 뒤 상세에서 누른 것과 같은 글이 나와야 하기 때문이다.
                     // ★ 매크로 치환자와 «같은 것» 으로 만든다(draftRowOf · 2026-09-21에
                     //   이 onClick 안에 있던 것을 위로 뽑았다).
-                    const list = chosen.map(draftRowOf);
+                    const list = chosen.length ? chosen.map(draftRowOf) : [noRowOf()];
                     const d = csDraftFor(supChannel, list, draftEvs());
                     // ★ 뒤에 빈 줄 하나를 남긴다(제니) — 문안 다음에 한마디 덧붙이는
                     //   일이 흔한데, 커서가 표 끝에 붙어 있으면 거기서 줄을 만들어야 한다.
@@ -29397,10 +29577,10 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
                           ok ? 'ok' : 'warn');
                   }}
                   style={{padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:600,
-                    fontFamily:'inherit',cursor:chosen.length?'pointer':'default',
+                    fontFamily:'inherit',cursor:(chosen.length || (noOrder && noProd))?'pointer':'default',
                     background:CS_WRITE.field,border:'1px solid '+CS_WRITE.btnBd,
-                    color:chosen.length?CS_WRITE.text:'#9AA7BE',whiteSpace:'nowrap'}}>
-                  📋 공급사 접수 문안{chosen.length
+                    color:(chosen.length || (noOrder && noProd))?CS_WRITE.text:'#9AA7BE',whiteSpace:'nowrap'}}>
+                  📋 공급사 접수 문안{(chosen.length || (noOrder && noProd))
                     ? (supChannel==='email' ? ' (메일)' : ' (메신저)') : ''}</button>
               }/>
             <CsPhotoAttach photos={photos} setPhotos={setPhotos} light/>
@@ -29666,7 +29846,7 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
                   border:'1px solid var(--border)',color:'var(--sub)'}}>지우기</button>
             )}
           </div>
-          {!head ? (
+          {!head && !(noOrder && noProd) ? (
             <div style={{fontSize:11,color:'var(--sub)',lineHeight:1.8}}>
               주문을 불러오면 <b>상품 CS 정보</b>와 <b>이 주문자의 최근 티켓</b>이 여기 뜹니다.
             </div>
@@ -30510,7 +30690,7 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
           </span>
         )}
         <span style={{fontSize:12,color:'var(--sub)'}}>
-          {t.order_item_code} / {t.supplier_name||'—'} / 접수 : {csDate(t.created_at)} / 담당자 : {csShortUser(t.assignee)}
+          {t.order_item_code||'주문 없음'} / {t.supplier_name||'—'} / 접수 : {csDate(t.created_at)} / 담당자 : {csShortUser(t.assignee)}
         </span>
         <div style={{flex:1}}></div>
         {/* ★ 상세에서 바로 새 티켓 등록으로(제니 2026-10-29). [목록으로] 왼쪽.
@@ -32021,6 +32201,11 @@ function csDraftVar(name){
 //     그 값은 담겨야 한다. 한 군데만 보면 «표에서는 되는데 줄글에서는 안 되는» 일이 생긴다.
 function csDraftUsedC24(tpl){
   const t = tpl || csTpl();
+  // ★ 문의용 틀이 쓰는 값도 담겨야 한다(2026-11-03).
+  if(t.inquiry){
+    const a = csDraftUsedC24({...t, inquiry:null}), b = csDraftUsedC24({...t, ...t.inquiry, inquiry:null});
+    return a.concat(b.filter(x=>a.indexOf(x)<0));
+  }
   const src = [t.mail_subject, t.mail_body, t.msg_head]
     .concat((t.mail_cols||[]).map(c=>c && c.v))
     .concat(t.msg_lines||[]).filter(Boolean).join('\n');
@@ -32068,7 +32253,35 @@ async function csLoadDraftTpl(){
 }
 // ★ 설정에 없는 항목은 기본값으로 메운다 — 한 항목만 저장해 둔 콘솔에서 나머지가
 //   빈 채로 나가면 «머리말 없는 문안» 이 조용히 발송된다.
-function csTpl(){ return {...CS_DRAFT_TPL_DEFAULT, ...(CS_DRAFT_TPL||{})}; }
+function csTpl(){
+  const b = {...CS_DRAFT_TPL_DEFAULT, ...(CS_DRAFT_TPL||{})};
+  // ★ 2026-11-03 — 문의용 틀(b.inquiry)은 «문의 건을 그리는 동안» 만 쓴다(csWithInquiry).
+  return (CS_DRAFT_MODE==='inquiry' && b.inquiry) ? {...b, ...b.inquiry} : b;
+}
+// ── 문의용 문안 (2026-11-03 제니: 「"문의" 방향일 때 공급사 접수 문안에서는 수량을 빼고 싶다」) ──
+// ★ 담긴 건이 «모두» 문의일 때만 문의용이다 — 한 통에 문의와 교환이 섞이면 기본 문안(수량 있음).
+// ★ 문안을 만드는 함수 여섯은 그대로 두고, 그리는 «동안» 만 모드를 바꾼다(withDraft 와 같은 꼴).
+let CS_DRAFT_MODE = null;
+function csIsInquiryList(list){
+  return !!(list && list.length) && list.every(t=> t && t.direction==='문의');
+}
+function csWithInquiry(list, fn){
+  const keep = CS_DRAFT_MODE;
+  CS_DRAFT_MODE = csIsInquiryList(list) ? 'inquiry' : null;
+  try{ return fn(); } finally { CS_DRAFT_MODE = keep; }
+}
+// 문의용 틀의 «처음 모양» — 기본 틀에서 수량이 든 열·변수를 뺀다(사람이 이어서 고친다).
+function csInqFrom(b){
+  const isQ = (x)=> /수량/.test(String(x||''));
+  return {...b,
+    mail_cols: (b.mail_cols||[]).filter(c=>!isQ(c.v) && !isQ(c.label)).map(c=>({...c})),
+    msg_lines: (b.msg_lines||[]).map(l=>String(l)
+        .replace(/\s*\/\s*\{[^}]*수량[^}]*\}/g,'')
+        .replace(/\{[^}]*수량[^}]*\}\s*\/\s*/g,'')
+        .replace(/\{[^}]*수량[^}]*\}/g,''))
+      .filter(l=>l.trim()),
+  };
+}
 // 치환자를 채운다. «치환자가 있었나»·«그중 하나라도 값이 있었나» 를 함께 돌려준다 —
 // 줄을 뺄지 정하는 데 쓴다.
 // ★ 모르는 이름은 **글자 그대로 둔다.** 지워 버리면 오타를 낸 사람이 «왜 안 나오지» 를
@@ -32275,9 +32488,9 @@ function csDraftMessenger(rows, events){
 //   («모르는 값» 이 새로 생겨도 메일로 간다 — 목록에 없는 코드가 조용히 줄글이 되지 않는다.)
 const CS_MSG_CHANNELS = ['kakao','nateon'];
 function csDraftFor(channelCode, list, events){
-  return (CS_MSG_CHANNELS.indexOf(channelCode) >= 0)
+  return csWithInquiry(list, ()=> (CS_MSG_CHANNELS.indexOf(channelCode) >= 0)
     ? {text: csDraftMessenger(list, events), html: null, isMail:false}
-    : {text: csDraftMailPlain(list, events), html: csDraftMailHtml(list, events), isMail:true};
+    : {text: csDraftMailPlain(list, events), html: csDraftMailHtml(list, events), isMail:true});
 }
 async function csDraftCopy(d){
   try{
@@ -32589,11 +32802,12 @@ function CsSupplierDraft({rows, events, photoMap, supMap, busy, onSent, onBack, 
         await navigator.clipboard.write([new window.ClipboardItem({
           // ★ 2026-11-03 — events 를 함께 넘긴다. 빠져 있어 화면 표에는 보이는 «접수 사유» 가
           //   복사한 글에서는 빠졌다(csIntakeReason 이 이력 없이는 빈 값).
-          'text/html' : new Blob([csDraftMailHtml(list, events)], {type:'text/html'}),
-          'text/plain': new Blob([csDraftMailPlain(list, events)],{type:'text/plain'}),
+          // ★ 문의만 담겼으면 문의용 틀로(csWithInquiry · 2026-11-03).
+          'text/html' : new Blob([csWithInquiry(list, ()=>csDraftMailHtml(list, events))], {type:'text/html'}),
+          'text/plain': new Blob([csWithInquiry(list, ()=>csDraftMailPlain(list, events))],{type:'text/plain'}),
         })]);
       }else{
-        const text = isMail ? csDraftMailPlain(list, events) : csDraftMessenger(list, events);
+        const text = csWithInquiry(list, ()=> isMail ? csDraftMailPlain(list, events) : csDraftMessenger(list, events));
         if(navigator.clipboard && navigator.clipboard.writeText){
           await navigator.clipboard.writeText(text);
         }else{
@@ -32759,16 +32973,16 @@ function CsSupplierDraft({rows, events, photoMap, supMap, busy, onSent, onBack, 
               {isMail ? (
                 <>
                   <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:8}}>
-                    {csDraftSubject(cur?cur.list:[], events)}</div>
-                  {csDraftMailParts(events).map((p,pi)=> p.t==='table' ? (
+                    {csWithInquiry(cur?cur.list:[], ()=>csDraftSubject(cur?cur.list:[], events))}</div>
+                  {csWithInquiry(cur?cur.list:[], ()=>csDraftMailParts(events)).map((p,pi)=> p.t==='table' ? (
                   <div key={pi} style={{overflowX:'auto',margin:'8px 0'}}>
                     <table style={{borderCollapse:'collapse',fontSize:11.5,minWidth:520}}>
-                      <thead><tr>{csDraftCols().map(c=>(
+                      <thead><tr>{csWithInquiry(cur?cur.list:[], ()=>csDraftCols()).map(c=>(
                         <th key={c} style={{border:'1px solid '+CS_LINE,padding:'5px 8px',
                           textAlign:'left',color:'var(--head-ink)',whiteSpace:'nowrap'}}>{c}</th>
                       ))}</tr></thead>
                       <tbody>{(cur?cur.list:[]).map(t=>(
-                        <tr key={t.id}>{csDraftRow(t, events).map((v,i)=>(
+                        <tr key={t.id}>{csWithInquiry(cur?cur.list:[], ()=>csDraftRow(t, events)).map((v,i)=>(
                           <td key={i} style={{border:'1px solid '+CS_LINE,padding:'5px 8px',
                             color:'var(--text)',fontFamily:i===1?MONO:'inherit'}}>{v}</td>
                         ))}</tr>
@@ -32783,7 +32997,7 @@ function CsSupplierDraft({rows, events, photoMap, supMap, busy, onSent, onBack, 
               ) : (
                 <pre style={{margin:0,fontFamily:MONO,fontSize:11.5,lineHeight:1.75,
                   color:'var(--text)',whiteSpace:'pre-wrap',
-                  overflowWrap:'anywhere'}}>{csDraftMessenger(cur?cur.list:[], events)}</pre>
+                  overflowWrap:'anywhere'}}>{csWithInquiry(cur?cur.list:[], ()=>csDraftMessenger(cur?cur.list:[], events))}</pre>
               )}
             </div>
 
