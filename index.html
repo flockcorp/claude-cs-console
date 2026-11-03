@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- v20261103i_kst_everywhere -->
+<!-- (2026-11-03) [dev→prod 이식] 🕘 콘솔 시각을 «한국 시간» 으로(제니: 「dev 에 찍힌 시간이 잘못된 거 같은데 한국 시간이야?」 → 「콘솔 내 모든 시간은 한국 시간이 되도록」). 원인 = DB 시각(UTC 글자)을 그대로 잘라 찍거나 toISOString(UTC)으로 «오늘» 을 잡은 곳들 — 9시간 늦게 찍히고 오전 9시 전은 전날로. 새 공통 함수 kstIso·kstDay·kstYm·kstMin·kstFrom·kstTo(+9 시간 고정 · PC 시간대 무관). 고친 곳: ①티켓 이력 시각(csStamp) ②csDate·csStamp·csStampFull(티켓 목록·상세·검색·연락망 등) ③today()·dateOffset() ④환불 통계 «이번 달·지난달·7일» 거르기(지난달은 «전전달» 을 비교하고 있었다)·일자별 묶음·기간 조회(시간대 없이 묻던 것 → +09:00) ⑤배송지연 발송 내역 기간 조회(+09:00)·기본 기간 ⑥즉시 발송 카페24 조회 기본 기간 ⑦계약 일정 addDays(한국 PC 에서 하루 앞이 나왔다 — 통보 마감·검토 시작일) ⑧카페24 맞춘 때·상품 등록/수정일·콘솔 고친 때·결제 시각·잔액 기준 시각(«(UTC)» 뺌). ★ 그대로 둔 것: 날짜만 있는 값(퇴사일 등) · 엑셀 날짜 칸 변환(UTC 가 맞다) · 이미 +9 로 계산하던 곳(통계·리체크 등) · toLocale*/getHours 계열(PC 시계 = 한국 PC 에선 KST). 저장 값(timestamptz)은 안 바뀐다. SQL 없음. -->
+<!-- v20261103h_history_date_bold -->
+<!-- (2026-11-03) [dev→prod 이식] 🐞 티켓 상세 이력 줄의 날짜가 100% 에서 뭉개져 보이던 것(제니) — 'monospace' 10px(윈도우 = Courier New 가는 획) → MONO(Consolas) 11px. 같은 줄 묶음 #번호(9.5px monospace)도 MONO 10.5px. + 제니 「날짜와 작성자 이름을 볼드체로 잘 보이게」 → 둘 다 굵게(700) · 글자색 본문색. 작성자(한글)는 고정폭에서 뺐다. 라이트·다크 1배 캡처로 확인. SQL 없음. -->
+<!-- v20261103g_ticket_quick_search -->
+<!-- (2026-11-03) [dev→prod 이식] 🔍 티켓 등록·상세 화면 머리에 «티켓 검색»(제니: 「우측 상단 티켓 등록 버튼 좌측으로 티켓 검색 기능 … 등록, 상세 화면 안에서 티켓을 검색할 수 있게」). 새 CsTicketQuickSearch — 상세는 [+ 티켓 등록] 왼쪽 · 등록 화면은 [+ 티켓 등록] 이 없어 [목록으로] 왼쪽. DB 에 바로 묻는다(cs_tickets · 목록 검색과 같은 칸: 주문번호·품목번호·주문자·수령인·연락처·상품·공급사·옛 티켓번호 + 티켓 번호 #N · 숫자만 친 연락처는 하이픈 꼴로도) · 최근 순 20건 + 「N건 찾음 · 더 좁혀 찾거나 티켓 목록에서」 · ↑↓ Enter Esc · 고르면 openTicket(작성 중이면 먼저 묻는다). 목록은 fixed 로 띄움. SQL 없음. -->
 <!-- v20261103f_type_dir_sort -->
 <!-- (2026-11-03) [dev→prod 이식] 티켓 «유형»·«방향» 고르기 목록을 가나다순으로(제니). CS_TYPES·CS_DIRECTIONS 의 «차례만» 바꿈 — 값은 그대로라 DB 제약(집합)·기존 티켓 무관. 영문 A/S 는 한글 뒤(Intl.Collator('ko')). SQL 없음. -->
 <!-- v20261103e_type_delivery -->
@@ -1974,10 +1980,28 @@ const calcUph = (a, date) => {
 };
 const calcRR  = ops => { const req=Number(ops.request_calls)||0, ans=Number(ops.answered_calls)||0; return req?((ans/req)*100).toFixed(1):''; };
 
-const dateOffset = days => { const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString().slice(0,10); };
-const today = () => new Date().toISOString().slice(0,10);
-// ★ 위 today() 는 UTC 기준이라 새벽(KST 00~09시)엔 어제 날짜가 나온다. 날짜를 '오늘인가'로
-//   비교할 때는 이걸 쓸 것 — 그 시간대에 하루 어긋난 판정이 나온다.
+// ── 한국 시간(KST) 공통 (2026-11-03 제니 「콘솔 내 모든 시간은 한국 시간이 되도록」) ──────
+// ★★ DB 의 시각(timestamptz)은 UTC 글자로 온다(…T08:15:00+00:00). 그 글자를 그대로 잘라
+//   찍으면 9시간 늦은 시각 · 오전 9시 전은 «전날» 이 된다. 화면·날짜 계산은 언제나 이 함수로.
+// ★ 한국은 서머타임이 없어 +9 시간 고정이 맞다 — PC 시간대와 상관없이 KST 로 나온다.
+// ★ 날짜만 있는 값('2026-11-06')은 UTC 0시로 읽혀 +9 시간 = 같은 날이라 그대로 맞다.
+const KST_MS = 9*3600*1000;
+function kstIso(v){
+  const t = v==null ? Date.now() : (v instanceof Date ? v.getTime() : (typeof v==='number' ? v : Date.parse(v)));
+  return isNaN(t) ? null : new Date(t + KST_MS).toISOString();     // KST 벽시계를 ISO 글자로
+}
+function kstDay(v){ const s=kstIso(v); return s ? s.slice(0,10) : (v ? String(v).slice(0,10) : ''); }   // YYYY-MM-DD
+function kstYm(v){  return kstDay(v).slice(0,7); }                                                  // YYYY-MM
+function kstMin(v){ const s=kstIso(v); return s ? s.slice(0,16).replace('T',' ') : (v ? String(v).slice(0,16).replace('T',' ') : ''); } // YYYY-MM-DD HH:mm
+// 날짜 칸(YYYY-MM-DD)을 KST 하루의 처음·끝 «시각» 으로 — DB 에 기간으로 물을 때.
+//   ★ 시간대를 안 붙이면 DB 가 UTC 로 읽어 하루가 9시간 밀린다.
+const kstFrom = ymd => ymd+'T00:00:00+09:00';
+const kstTo   = ymd => ymd+'T23:59:59.999+09:00';
+
+const dateOffset = days => kstDay(Date.now() - days*86400000);
+// ★ 2026-11-03 부터 today() 도 KST 다(전에는 UTC 라 새벽 0~9시에 어제가 나왔다).
+const today = () => kstDay();
+// ★ todayLocal 은 PC 시계 기준 — 한국 PC 에선 today() 와 같다. 남겨 둔다.
 const todayLocal = () => { const d=new Date(), p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
 
@@ -4181,7 +4205,7 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false,currentUserEm
           )}
           <div style={{fontSize:12,color:'var(--sub)',marginTop:4}}>
             {s.missing&&'콘솔에서는 지우지 않고 보관합니다. '}
-            {s.syncedAt?'카페24와 맞춘 때: '+s.syncedAt.slice(0,16).replace('T',' '):'카페24와 맞춘 기록이 없습니다'}
+            {s.syncedAt?'카페24와 맞춘 때: '+kstMin(s.syncedAt):'카페24와 맞춘 기록이 없습니다'}
           </div>
         </div>
       </div>
@@ -5539,8 +5563,8 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false,currentUserEm
                     <td>{p.product_url?<a href={p.product_url} target="_blank" rel="noreferrer" style={{color:'#1a5fcc',fontSize:12}}>링크</a>:'-'}</td>
                     <td>
                       <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                        <span style={{fontSize:11,color:'#2a4060',fontWeight:500}}>{p.created_at?p.created_at.slice(0,10):'-'}</span>
-                        <span style={{fontSize:10,color:'var(--sub)'}}>수정 {p.updated_at?p.updated_at.slice(0,10):'-'}</span>
+                        <span style={{fontSize:11,color:'#2a4060',fontWeight:500}}>{p.created_at?kstDay(p.created_at):'-'}</span>
+                        <span style={{fontSize:10,color:'var(--sub)'}}>수정 {p.updated_at?kstDay(p.updated_at):'-'}</span>
                         {/* ★ 「맞춤 MM-DD」 줄은 2026-08-31 에 뺐다(제니 지시).
                             08-26 에 수정 동기화를 300건씩 손으로 돌리던 때는 «이번에 무엇을
                             건드렸나» 를 알 유일한 자리였지만, 이제 매일 자동으로 돌아
@@ -6783,7 +6807,7 @@ function ProductsPage({isCrew=false,isMaster=false,isManager=false,currentUserEm
                 if(!s||!s.known) return <span style={{color:'var(--sub)'}}>아직 카페24와 맞춘 적이 없습니다</span>;
                 const state=s.stopped&&s.hidden?'판매중지 · 미진열':(s.stopped?'판매중지':(s.hidden?'미진열':'판매중 · 진열중'));
                 return <span>{state}<span style={{color:'var(--sub)',fontSize:11,marginLeft:8}}>
-                  맞춘 때 {s.syncedAt?s.syncedAt.slice(0,16).replace('T',' '):'-'}</span></span>;
+                  맞춘 때 {s.syncedAt?kstMin(s.syncedAt):'-'}</span></span>;
               })()],
               ['URL', detailProd.product_url?<a href={detailProd.product_url} target="_blank" rel="noreferrer" style={{color:'var(--accent)'}}>링크 열기</a>:'-'],
             ]:[
@@ -8009,10 +8033,10 @@ function SuppliersPage({isCrew=false,isMaster=false,isManager=false,currentUserE
                       그런 곳은 상단 «배송비 미설정» 으로 걸러 카페24에서 확인해 넣는다. */}
                 <span style={{textAlign:'center',fontSize:10,color:'#8895B0',whiteSpace:'nowrap'}}
                   title={s.updated_at
-                    ? '콘솔에서 마지막으로 고친 때: '+String(s.updated_at).slice(0,16).replace('T',' ')
+                    ? '콘솔에서 마지막으로 고친 때: '+kstMin(s.updated_at)
                       +' (카페24 자동 동기화는 이 값을 밀지 않습니다)'
                     : '콘솔에서 고친 기록이 없습니다'}>
-                  {s.updated_at?String(s.updated_at).slice(0,10):'—'}
+                  {s.updated_at?kstDay(s.updated_at):'—'}
                 </span>
                 {/* 저장. 권한이 없어 회색인 경우가 있는데 표가 길어 헤더의 '읽기 전용' 안내가
                     화면 밖으로 나가 있을 수 있다 — 버튼 자리에서도 이유를 알 수 있게 한다. */}
@@ -9949,8 +9973,9 @@ function RefundReportTab({ reasons }){
   const load = async ()=>{
     setLoading(true);
     // created_at 기준 기간 필터. to는 그날 끝까지 포함
-    const fromIso = from + 'T00:00:00';
-    const toIso   = to   + 'T23:59:59';
+    // ★ KST 하루로 묻는다(2026-11-03 · 시간대를 안 붙이면 DB 가 UTC 로 읽는다).
+    const fromIso = kstFrom(from);
+    const toIso   = kstTo(to);
     let all = [];
     let rangeFrom = 0;
     const PAGE = 1000;
@@ -10003,7 +10028,7 @@ function RefundReportTab({ reasons }){
   // ① 일자별 추이 (건수 + 금액 2축)
   const byDate = {};
   rows.forEach(r=>{
-    const d = String(r.created_at).slice(0,10);
+    const d = kstDay(r.created_at);   // KST 날짜(2026-11-03)
     if(!byDate[d]) byDate[d]={count:0, amount:0};
     byDate[d].count += 1;
     byDate[d].amount += (r.refund_amount||0);
@@ -10330,19 +10355,20 @@ function RefundManagementPage({ currentUserEmail, goTicket, can }) {
   // 단순화를 위해 created_at 문자열 prefix 비교
   const periodFilter = (()=>{
     if(period==='all') return null;
-    const d = new Date();
+    // 🐞 2026-11-03 KST 로(전에는 UTC — 오전 9시 전 건이 전날·전달로 갔고, «지난달» 은
+    //   로컬 1일 0시를 UTC 로 바꿔 «전전달» 을 비교하고 있었다).
+    const ymNow = kstYm();
     if(period==='this_month'){
-      const ym = d.toISOString().slice(0,7);
-      return (r)=>String(r.created_at).slice(0,7)===ym;
+      return (r)=>kstYm(r.created_at)===ymNow;
     }
     if(period==='last_month'){
-      const lm = new Date(d.getFullYear(), d.getMonth()-1, 1);
-      const ym = lm.toISOString().slice(0,7);
-      return (r)=>String(r.created_at).slice(0,7)===ym;
+      const [y,m] = ymNow.split('-').map(Number);
+      const ym = m===1 ? (y-1)+'-12' : y+'-'+String(m-1).padStart(2,'0');
+      return (r)=>kstYm(r.created_at)===ym;
     }
     if(period==='last_7d'){
-      const from = new Date(d.getTime() - 7*24*3600*1000).toISOString().slice(0,10);
-      return (r)=>String(r.created_at).slice(0,10) >= from;
+      const from = kstDay(Date.now() - 7*24*3600*1000);
+      return (r)=>kstDay(r.created_at) >= from;
     }
     return null;
   })();
@@ -12013,8 +12039,8 @@ function DelayAddModal({ editingRow, onClose, onSaved, canSend=false }){
   const [elapsedDays,setElapsedDays] = useState('3');
 
   // 즉시 발송 시 카페24 주문 조회 기간 (immediate일 때만 사용)
-  const todayStr = new Date().toISOString().slice(0,10);
-  const monthAgoStr = (()=>{ const d=new Date(); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); })();
+  const todayStr = kstDay();
+  const monthAgoStr = kstDay(Date.now() - 30*86400000);
   const [blastDateFrom,setBlastDateFrom] = useState(monthAgoStr);
   const [blastDateTo,setBlastDateTo] = useState(todayStr);
 
@@ -14727,8 +14753,8 @@ function DelayAlimtalkPreview({ selectedProduct, variants, selectedVariantCodes,
 
 function DelayHistoryTab({canSend=false}){
   // ─── 필터 state ──────────────────────────────────────────────────────
-  const todayStr = new Date().toISOString().slice(0,10);
-  const weekAgoStr = (()=>{ const d=new Date(); d.setDate(d.getDate()-7); return d.toISOString().slice(0,10); })();
+  const todayStr = kstDay();
+  const weekAgoStr = kstDay(Date.now() - 7*86400000);
   const [dateFrom,setDateFrom] = useState(weekAgoStr);
   const [dateTo,setDateTo] = useState(todayStr);
   const [statusFilter,setStatusFilter] = useState('all');     // all | success | failed | scheduled | queued
@@ -14761,8 +14787,8 @@ function DelayHistoryTab({canSend=false}){
   const buildQuery = (selectCols, isCount=false)=>{
     let q = sb.from('delay_notifications').select(selectCols, isCount?{count:'exact',head:isCount&&!selectCols}:{});
     // 기간 필터 (sent_at)
-    if(dateFrom) q = q.gte('sent_at', dateFrom+'T00:00:00');
-    if(dateTo)   q = q.lte('sent_at', dateTo  +'T23:59:59');
+    if(dateFrom) q = q.gte('sent_at', kstFrom(dateFrom));   // KST 하루(2026-11-03)
+    if(dateTo)   q = q.lte('sent_at', kstTo(dateTo));
     // 상태/채널/트리거
     if(statusFilter!=='all')  q = q.eq('status', statusFilter);
     if(channelFilter!=='all') q = q.eq('channel', channelFilter);
@@ -15529,7 +15555,7 @@ const VIEWS = [
   ["setup", "설정"],
 ];
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => kstDay();   // KST(2026-11-03 · 전에는 UTC — 새벽엔 어제)
 
 // 오늘 기준 남은 일수. 지난 날짜면 음수.
 function daysUntil(dateStr) {
@@ -15542,9 +15568,11 @@ function daysUntil(dateStr) {
 
 function addDays(dateStr, days) {
   if (!dateStr) return "";
-  const t = new Date(dateStr + "T00:00:00");
+  // 🐞 2026-11-03 — 로컬 0시를 toISOString(UTC)으로 적어 한국 PC 에선 «하루 앞» 이 나왔다.
+  //   날짜 계산은 UTC 달력으로만 한다(시간대가 끼지 않는다).
+  const t = new Date(dateStr + "T00:00:00Z");
   if (isNaN(t.getTime())) return "";
-  t.setDate(t.getDate() + days);
+  t.setUTCDate(t.getUTCDate() + days);
   return t.toISOString().slice(0, 10);
 }
 
@@ -20935,24 +20963,25 @@ function csShortUser(v){
   if(!v) return '—';
   return CS_USER_NAMES[String(v).toLowerCase()] || String(v).split('@')[0];
 }
-function csDate(v){ return v ? String(v).slice(5,10) : '—'; }
+// 🐞 2026-11-03 제니 「찍힌 시간이 한국 시간이야?」 — 아니었다. DB 시각(UTC)의 글자를 그대로
+//   잘라 써서 오전 9시 전 KST 는 «전날» 로 찍혔다. → 브라우저 시각(KST)으로 바꿔 적는다.
+//   ★ 날짜만 있는 값(YYYY-MM-DD · 리체크 날짜 등)은 시각이 없으니 그대로 자른다.
+function csDate(v){
+  if(!v) return '—';
+  const s = String(v);
+  if(s.length<=10) return s.slice(5,10);
+  return kstDay(s).slice(5,10);
+}
 // «2026-09-08 21:14» — 연도까지 적는 자리다. csStamp 은 월-일만 적어 «작년 것» 이
 // 올해 것처럼 보인다. 연락망처럼 «언제 기준인가» 가 곧 값의 신뢰도인 자리에 쓴다.
 function csStampFull(v){
   if(!v) return '—';
-  const d = new Date(v);
-  if(isNaN(d)) return String(v).slice(0,16).replace('T',' ');
-  const p=(n)=>String(n).padStart(2,'0');
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())
-    +' '+p(d.getHours())+':'+p(d.getMinutes());
+  return kstMin(v);   // KST 고정(2026-11-03 · PC 시간대와 무관)
 }
 // «09-01 18:16» — 날짜만으로는 같은 날 여러 번 손댄 것이 구분되지 않는다.
 function csStamp(v){
   if(!v) return '—';
-  const d = new Date(v);
-  if(isNaN(d)) return String(v).slice(5,16).replace('T',' ');
-  const p=(n)=>String(n).padStart(2,'0');
-  return p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+  return kstMin(v).slice(5);   // «11-03 17:15» · KST 고정(2026-11-03)
 }
 // ★★ 목록의 시각은 «얼마나 됐나» 가 먼저다(제니). 한 시간 안쪽은 「17분 전」이
 //   훨씬 빨리 읽히고, 그 뒤로는 상대 시각이 오히려 흐려진다(「6시간 전」이 몇 시인지
@@ -27442,6 +27471,131 @@ function CsPick({value, options, onChange, placeholder, width, labelOf, searchOf
   );
 }
 
+// ── 티켓 빠른 검색 (등록·상세 머리 · 2026-11-03 제니) ─────────────────────
+// 「티켓 등록 화면, 상세 화면에서 … 티켓을 검색할 수 있게」. 목록 검색은 «불러 둔 목록» 을
+// 뒤지지만 여기는 목록이 없다 → DB 에 바로 묻는다(같은 칸 · 같은 «전체» 범위 · 칩 없음).
+// ★ 찾는 칸 = 목록 검색과 같다(주문번호·품목번호·주문자·수령인·연락처·상품·공급사·옛 티켓번호)
+//   + 티켓 번호(#123 · 숫자만). 연락처는 표기가 흔들려서(010-1234-5678 · 01012345678)
+//   숫자만 쳐도 하이픈 꼴로 한 번 더 찾는다.
+// ★ 열기 = App 의 openTicket(goTicket) — «작성 중» 이면 먼저 묻는다(csConfirmLeave).
+// ★ 목록은 fixed 로 띄운다(CsPick 과 같은 이유 — 칸 overflow 에 잘리지 않게).
+// ★ 잘라 보여줄 때는 나머지로 가는 길을 함께 적는다(목록 자르기 규칙).
+const CS_QS_LIMIT = 20;
+function csQsPhoneVariants(d){
+  const out = [];
+  if(d.length===11) out.push(d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7));
+  if(d.length===10) out.push(d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6));
+  if(d.length===8)  out.push(d.slice(0,4)+'-'+d.slice(4));
+  return out;
+}
+function CsTicketQuickSearch({goTicket, currentId}){
+  const [q,setQ]         = useState('');
+  const [res,setRes]     = useState(null);   // null = 아직 안 찾음
+  const [total,setTotal] = useState(0);
+  const [busy,setBusy]   = useState(false);
+  const [open,setOpen]   = useState(false);
+  const [hover,setHover] = useState(0);
+  const boxRef = useRef(null);
+  const [pos,setPos] = useState(null);
+  useEffect(()=>{
+    // PostgREST «or» 문법을 깨는 글자는 뺀다.
+    const term = q.trim().replace(/[,()%*\\]/g,' ').replace(/\s+/g,' ').trim();
+    if(term.length<2){ setRes(null); setTotal(0); setBusy(false); return; }
+    setBusy(true);
+    const timer = setTimeout(async ()=>{
+      const conds = ['order_id','order_item_code','orderer_name','orderer_phone','receiver_name',
+        'receiver_phone','product_name','supplier_name','zendesk_id']
+        .map(k=>`${k}.ilike.%${term}%`);
+      const d = csDigits(term);
+      // 숫자(·하이픈·빈칸)만 친 검색어일 때만 연락처 꼴을 더한다 — 이름 등에는 영향 없음.
+      const numeric = !!d && d===term.replace(/[-\s]/g,'');
+      if(numeric && d.length>=4){
+        const vs = [d, ...csQsPhoneVariants(d)].filter(v=>v!==term);
+        vs.forEach(v=>{ conds.push(`orderer_phone.ilike.%${v}%`, `receiver_phone.ilike.%${v}%`); });
+      }
+      const idm = term.match(/^#?(\d{1,9})$/);
+      if(idm) conds.push(`id.eq.${idm[1]}`);
+      const {data,error,count} = await sb.from('cs_tickets')
+        .select('id,stage,order_item_code,orderer_name,receiver_name,product_name,supplier_name,cs_type,direction,created_at',
+          {count:'exact'})
+        .or(conds.join(','))
+        .order('created_at',{ascending:false})
+        .limit(CS_QS_LIMIT);
+      setBusy(false);
+      if(error){ console.error('티켓 검색 실패:',error); setRes([]); setTotal(0); return; }
+      setRes(data||[]); setTotal(count||((data||[]).length)); setHover(0);
+    },300);
+    return ()=>clearTimeout(timer);
+  },[q]);
+  useEffect(()=>{
+    if(!open){ setPos(null); return; }
+    const el = boxRef.current; if(!el) return;
+    const r = el.getBoundingClientRect();
+    const w = Math.max(r.width, 460);
+    setPos({top:r.bottom+4, left:Math.max(8, r.right - w), width:w});
+  },[open, res]);
+  const list = res||[];
+  const idx = list.length ? Math.min(hover, list.length-1) : 0;
+  const pick = (t)=>{ if(!t) return; setOpen(false); setQ(''); setRes(null); goTicket && goTicket(t.id); };
+  const showList = open && pos && q.trim().length>=2;
+  return (
+    <div ref={boxRef} style={{position:'relative',width:280,marginRight:8,alignSelf:'center'}}>
+      <input value={q} placeholder="🔍 티켓 검색 — 주문번호 · 고객 · 연락처 · 번호"
+        onChange={e=>{ setQ(e.target.value); setOpen(true); }}
+        onFocus={()=>setOpen(true)}
+        onBlur={()=>setTimeout(()=>setOpen(false),180)}
+        onKeyDown={e=>{
+          if(e.key==='ArrowDown'){ e.preventDefault(); setOpen(true); setHover(i=>Math.min(i+1,list.length-1)); }
+          else if(e.key==='ArrowUp'){ e.preventDefault(); setHover(i=>Math.max(i-1,0)); }
+          else if(e.key==='Enter'){ e.preventDefault(); if(list.length) pick(list[idx]); }
+          else if(e.key==='Escape'){ e.preventDefault(); setOpen(false); }
+        }}
+        style={{width:'100%',fontSize:12,padding:'6px 10px',background:'var(--bg)',
+          border:'1px solid var(--border)',color:'var(--text)',borderRadius:7,
+          fontFamily:'inherit',boxSizing:'border-box'}}/>
+      {showList && (
+        <div style={{position:'fixed',top:pos.top,left:pos.left,width:pos.width,zIndex:1150,
+          background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,
+          maxHeight:380,overflowY:'auto',boxShadow:'0 8px 20px rgba(0,0,0,.25)'}}>
+          {busy && res===null ? (
+            <div style={{padding:'10px 12px',fontSize:12,color:'var(--sub)'}}>찾는 중…</div>
+          ) : list.length===0 ? (
+            <div style={{padding:'10px 12px',fontSize:12,color:'var(--sub)'}}>
+              맞는 티켓이 없습니다 — 주문번호 · 고객명 · 연락처(뒤 4자리) · 공급사 · 티켓 번호로 찾습니다
+            </div>
+          ) : (<>
+            <div style={{padding:'7px 12px',fontSize:11,color:'var(--sub)',
+              borderBottom:'1px solid var(--border)'}}>
+              {total>list.length
+                ? <>{total}건 찾음 · 최근 {list.length}건만 보입니다 — 더 좁혀 찾거나 티켓 목록에서 같은 말로 찾으세요</>
+                : <>{total}건 찾음 · 최근 순</>}
+            </div>
+            {list.map((t,i)=>(
+              <div key={t.id} onMouseDown={e=>{e.preventDefault(); pick(t);}}
+                onMouseEnter={()=>setHover(i)}
+                style={{padding:'7px 12px',cursor:'pointer',display:'flex',flexDirection:'column',gap:3,
+                  borderBottom:'1px solid var(--border)',
+                  background: i===idx ? 'var(--hover)' : 'transparent'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'var(--text)'}}>
+                  <span style={{fontFamily:MONO,fontWeight:700}}>#{t.id}</span>
+                  <CsStagePill stage={t.stage}/>
+                  <span style={{fontFamily:MONO,color:'var(--sub)'}}>{t.order_item_code||'주문 없음'}</span>
+                  <span style={{marginLeft:'auto',color:'var(--sub)',fontSize:11,flexShrink:0}}>
+                    {t.id===currentId ? '지금 보는 티켓' : csDate(t.created_at)}</span>
+                </div>
+                <div style={{fontSize:11,color:'var(--sub)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {[t.orderer_name||t.receiver_name, t.supplier_name, [t.cs_type,t.direction].filter(Boolean).join(' '), t.product_name]
+                    .filter(Boolean).join(' · ') || '—'}
+                </div>
+              </div>
+            ))}
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 새 티켓 등록 (화면) ───────────────────────────────────────────────────
 // ★★ 티켓은 «사람이 필요해서» 만든다(제니). 카페24 신청을 보고 자동으로 만들지 않는다
 //   — 그래서 담당자가 빌 자리가 없다(만든 사람이 곧 담당자다).
@@ -29041,6 +29195,8 @@ function CsNewTicketPage({currentUserEmail, role, onDone, onCancel, goTicket}){
             이 머리말, 저장 버튼이 모두 같은 말을 써야 같은 일로 읽힌다. */}
         <h1 style={{fontSize:20,fontWeight:700,margin:0,color:'var(--text)'}}>📝 새 티켓 등록</h1>
         <div style={{flex:1}}></div>
+        {/* ★ 티켓 빠른 검색 — [목록으로] 왼쪽(제니 2026-11-03 · 이 화면엔 [+ 티켓 등록] 이 없다). */}
+        <CsTicketQuickSearch goTicket={goTicket}/>
         {/* ★ 상세 화면의 [목록으로] 와 «같은 모양» 이다(제니 2026-09-02). 어두운 화면에서
             «투명 배경 + 회색 글자» 는 눌러도 되는 것으로 안 읽힌다 — 밝은 바탕에 어두운
             글자로 「여기서 나간다」를 분명히 한다.
@@ -30698,6 +30854,8 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
           {t.order_item_code||'주문 없음'} / {t.supplier_name||'—'} / 접수 : {csDate(t.created_at)} / 담당자 : {csShortUser(t.assignee)}
         </span>
         <div style={{flex:1}}></div>
+        {/* ★ 티켓 빠른 검색 — [+ 티켓 등록] 왼쪽(제니 2026-11-03). */}
+        <CsTicketQuickSearch goTicket={goTicket} currentId={t.id}/>
         {/* ★ 상세에서 바로 새 티켓 등록으로(제니 2026-10-29). [목록으로] 왼쪽.
             ★ 채운 파랑은 쓰지 않는다 — 이 화면의 주 동작은 «저장» 이다(아래 주석). 테두리만.
             ★ 안 저장한 값·적던 글이 있으면 먼저 묻는다 — 2026-10-30 부터 App 의 이동 확인(csConfirmLeave)이 묻는다. */}
@@ -31069,7 +31227,7 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
                   {/* 묶음이면 «어느 티켓의 일인가» 를 붙인다 — 값 변경은 티켓마다
                       따로 남으므로 표시가 없으면 뒤섞여 읽힌다. */}
                   {group.length>1 && (
-                    <span style={{fontSize:9.5,fontFamily:'monospace',
+                    <span style={{fontSize:10.5,fontFamily:MONO,fontWeight:600,
                       color: e.ticket_id===t.id ? 'var(--accent)' : 'var(--sub)',
                       opacity: e.ticket_id===t.id ? 1 : .7}}>#{e.ticket_id}</span>
                   )}
@@ -31103,8 +31261,13 @@ function CsTicketPage({ticketId, currentUserEmail, role, canRefund, seq, onBack,
                         color: intakeIds.indexOf(e.id)>=0 ? '#F6AD09' : '#9FB6DC'}}>
                       {intakeIds.indexOf(e.id)>=0 ? '★' : '☆'}</button>
                   )}
-                  <span style={{fontSize:10,color:'var(--sub)',fontFamily:'monospace'}}>
-                    {String(e.created_at).slice(5,16).replace('T',' ')}{' '}
+                  {/* 🐞 2026-11-03 제니 「날짜 숫자가 뭉개져 보인다」 — 'monospace' 10px = 윈도우에서
+                      Courier New(가는 획). MONO 상수 + 11px + 굵기로 바꾸고, 작성자(한글)는
+                      고정폭에서 빼 콘솔 글꼴로 둔다. */}
+                  {/* ★ 날짜·작성자 모두 굵게 · 글자색 본문색(제니 2026-11-03 「볼드체로 잘 보이게」). */}
+                  <span style={{fontSize:11,color:'var(--text)',fontWeight:700,whiteSpace:'nowrap'}}>
+                    <span style={{fontFamily:MONO,fontWeight:700}}>
+                      {csStamp(e.created_at)}</span>{' '}
                     {e.side==='시스템' ? '시스템' : csShortUser(e.actor)}</span>
                   {/* ★ 지울 수 있는 사람: 그 글을 쓴 본인, 또는 master. DB 정책도 같다.
                       ★★ 시스템 줄에는 «지우기» 를 두지 않는다(제니 2026-09-03).
@@ -36870,7 +37033,7 @@ function LogisticsClassifyPage({currentUserEmail, isMaster}){
                   {orderList.map(o=>(
                     <tr key={o.order_no}>
                       <td style={{fontFamily:'monospace',fontSize:12}}>{o.order_no}</td>
-                      <td style={{color:'var(--sub)',fontSize:12}}>{String(o.paid_at).slice(0,16)}</td>
+                      <td style={{color:'var(--sub)',fontSize:12}}>{o.paid_at?kstMin(o.paid_at):'—'}</td>
                       <td>{o.ship_group}{o.staged_due && <span style={{marginLeft:6}}>{tag('순차 '+o.staged_label+' 도래','warn')}</span>}</td>
                       <td style={{textAlign:'right',fontWeight:700}}>{o.total_qty}</td>
                       <td style={{textAlign:'right',color:'var(--sub)'}} title={o.small_qty ? '소형품목 '+o.small_qty+'개' : undefined}>{o.box_qty}</td>
@@ -38670,7 +38833,7 @@ function AccountPage({session,role,alerts,onGo,onMenuSaved,onActionSaved,onNavSa
                             부가세 몫을 뺀 <b style={{color:'var(--text)'}}>실제 발송 가능액</b>입니다.<br/></>
                         : null}
                       {bal.point>0?'포인트 '+bal.point.toLocaleString()+'원 · ':''}
-                      {bal.fetched_at?String(bal.fetched_at).slice(0,16).replace('T',' ')+' 기준 (UTC)':''}
+                      {bal.fetched_at?kstMin(bal.fetched_at)+' 기준':''}
                     </div>
                   </>
                 ):(
