@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- v20261126f_chip_keep_custom -->
+<!-- (2026-11-26) [dev→prod 이식] 🎫 사람이 만든 칩(u:… 예 «정산 체크»)을 고르고 상세 → [목록으로] 오면 '전체' 로 돌아가던 것(제니). 원인 = 목록이 새로 붙을 때 설정(settings)을 읽기 전이라 만든 칩이 «안 보이는 칩» 으로 판정돼 되돌림 effect 가 '전체' 로 바꿈 → settings===null 이면 판정하지 않는다. 기본 칩은 원래 유지됐다. SQL 없음. -->
 <!-- v20261126e_tab_max_10 -->
 <!-- (2026-11-26) [dev→prod 이식] 🗂 탭 최대 8 → 10개(제니). CS_TAB_MAX 하나만. SQL 없음. -->
 <!-- v20261126d_tab_title_limit -->
@@ -23349,9 +23351,13 @@ function CsTicketsPage({currentUserEmail, role, canRefund, canDelete=false, onNe
   });
   // ★ 그리기 «전» 이 아니라 그린 «뒤» 에 되돌린다(useEffect) — 렌더 도중에 부모 상태를
   //   바꾸면 React 가 경고를 내고, 한 번은 없는 칩으로 그려진다.
+  // ★★ 2026-11-26 제니 «칩 고르고 상세 갔다 [목록으로] 오면 '전체' 로 뜬다» — 목록 화면이 새로 붙을 때
+  //   설정(settings)을 «읽기 전» 이라 사람이 만든 칩(u:…)·칩 권한이 아직 없어, 고른 칩이 «안 보이는 칩»
+  //   으로 판정돼 '전체' 로 돌아갔다. → 설정을 읽은 뒤에만 판정한다(null = 아직 읽는 중).
   useEffect(()=>{
+    if(settings===null) return;
     if(chip !== 'all' && !visibleChips.some(c=>c.id===chip)) setChip('all');
-  },[chip, visibleChips.length, role]);
+  },[chip, visibleChips.length, role, settings]);
 
   const counts = useMemo(()=>{
     const m = {};
